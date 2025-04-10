@@ -1,7 +1,7 @@
 // search-chunks.ts (modular version)
 //import dotenv from "dotenv";
 import path from "path";
-import { readFile, access } from "fs/promises";
+import { readFile, access, mkdir, writeFile } from "fs/promises";
 import { EmbeddedChunk } from "./rerank-chunks";
 import rerankChunks from "./rerank-chunks";
 import readline from "readline/promises";
@@ -10,6 +10,9 @@ import readline from "readline/promises";
 
 const OUTPUT_DIR = path.resolve(process.cwd(), "output");
 const EMBEDDINGS_FILE = path.join(OUTPUT_DIR, "embedded-chunks.json");
+const RELEVANT_DIR = path.join(OUTPUT_DIR, "relevant-chunks");
+const SELECTED_CONTEXT_FILE = path.join(RELEVANT_DIR, "selected-context.json");
+
 
 async function exists(filePath: string) {
   try {
@@ -65,9 +68,33 @@ export async function searchChunks(question: string): Promise<EmbeddedChunk[]> {
     chunk,
     score: cosineSimilarity(chunk.embedding, questionEmbedding),
   })).sort((a, b) => b.score - a.score);
+  
+  const topScored = scored.slice(0, 1);
+  
+  // ✅ Display scored chunks before reranking
+  console.log("\n📊 Top scored chunks by cosine similarity:");
+  topScored.forEach(({ chunk, score }, index) => {
+    console.log(`(${index + 1}) [Score: ${score.toFixed(4)}] ${chunk.sourceId}-${chunk.chunkIndex}\n${chunk.text}\n----------------------------------------`);
+  });
+  
+  // 🔍 Rerank top chunks using LLM
+  const relevantChunks = await rerankChunks(question, topScored.map((s) => s.chunk));
+  
 
-  const topChunks = scored.slice(0, 10).map((s) => s.chunk);
-  const relevantChunks = await rerankChunks(question, topChunks);
+  console.log("\n📚 Relevant chunks:");
+  for (const chunk of relevantChunks) {
+    console.log(`→ [${chunk.sourceId}-${chunk.chunkIndex}]\n${chunk.text}\n----------------------------------------`);
+  }
+
+  if (relevantChunks.length === 0) {
+    console.log("⚠️ No relevant legal texts found.");
+  }
+
+  await mkdir(RELEVANT_DIR, { recursive: true });
+  await writeFile(SELECTED_CONTEXT_FILE, JSON.stringify({
+    question,
+    relevantChunks
+  }, null, 2));
 
   return relevantChunks;
 }
