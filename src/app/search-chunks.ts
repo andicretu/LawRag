@@ -1,24 +1,15 @@
-// search-chunks.ts
-import dotenv from "dotenv";
+// search-chunks.ts (modular version)
+//import dotenv from "dotenv";
 import path from "path";
-import { readFile, writeFile, access } from "fs/promises";
+import { readFile, access } from "fs/promises";
+import { EmbeddedChunk } from "./rerank-chunks";
+import rerankChunks from "./rerank-chunks";
 import readline from "readline/promises";
-import rerankChunks, { EmbeddedChunk } from "./rerank-chunks";
 
-dotenv.config({ path: path.resolve(process.cwd(), ".env") });
-
-const OPENAI_API_KEY = "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";
-
-if (!OPENAI_API_KEY) {
-  console.error("❌ Missing OpenAI API key in environment. Check your .env file.");
-  process.exit(1);
-} else {
-  console.log("🔑 OpenAI key loaded");
-}
+//dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 
 const OUTPUT_DIR = path.resolve(process.cwd(), "output");
 const EMBEDDINGS_FILE = path.join(OUTPUT_DIR, "embedded-chunks.json");
-const SELECTED_CONTEXT_FILE = path.join(OUTPUT_DIR, "selected-context.json");
 
 async function exists(filePath: string) {
   try {
@@ -42,6 +33,7 @@ function cosineSimilarity(a: number[], b: number[]): number {
 }
 
 async function fetchEmbedding(text: string): Promise<number[]> {
+  const OPENAI_API_KEY = "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";
   const MODEL = "text-embedding-3-small";
 
   const response = await fetch("https://api.openai.com/v1/embeddings", {
@@ -61,24 +53,12 @@ async function fetchEmbedding(text: string): Promise<number[]> {
   return json.data[0].embedding;
 }
 
-async function askQuestion(): Promise<string> {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-  const answer = await rl.question("❓ Enter your legal question: ");
-  rl.close();
-  return answer;
-}
-
-async function run() {
+export async function searchChunks(question: string): Promise<EmbeddedChunk[]> {
   if (!(await exists(EMBEDDINGS_FILE))) {
-    console.error("❌ No embedded chunks found. Run embed-chunks.ts first.");
-    return;
+    throw new Error("❌ No embedded chunks found. Run embed-chunks.ts first.");
   }
 
   const chunks = await loadChunks();
-  const question = await askQuestion();
   const questionEmbedding = await fetchEmbedding(question);
 
   const scored = chunks.map((chunk) => ({
@@ -87,20 +67,28 @@ async function run() {
   })).sort((a, b) => b.score - a.score);
 
   const topChunks = scored.slice(0, 10).map((s) => s.chunk);
-
-  console.log("🔍 Reranking top results with LLM...");
   const relevantChunks = await rerankChunks(question, topChunks);
 
-  await writeFile(SELECTED_CONTEXT_FILE, JSON.stringify({ question, relevantChunks }, null, 2));
-
-  console.log("\n📚 Relevant chunks:");
-  for (const chunk of relevantChunks) {
-    console.log(`→ [${chunk.sourceId}-${chunk.chunkIndex}]\n${chunk.text}\n----------------------------------------`);
-  }
-
-  if (relevantChunks.length === 0) {
-    console.log("⚠️ No relevant legal texts found.");
-  }
+  return relevantChunks;
 }
 
-run();
+// CLI entry point for manual testing
+if (process.argv[1].endsWith("search-chunks.ts")) {
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  rl.question("❓ Enter your legal question: ").then(async (question) => {
+    rl.close();
+    try {
+      const results = await searchChunks(question);
+      console.log("\n📚 Relevant chunks:");
+      for (const chunk of results) {
+        console.log(`→ [${chunk.sourceId}-${chunk.chunkIndex}]\n${chunk.text}\n----------------------------------------`);
+      }
+      if (results.length === 0) {
+        console.log("⚠️ No relevant legal texts found.");
+      }
+    } catch (err) {
+      console.error("❌ Error:", err);
+    }
+  });
+}
+export type { EmbeddedChunk };
