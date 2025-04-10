@@ -1,25 +1,25 @@
 // embed-chunks.ts
-import dotenv from "dotenv";
+//import dotenv from "dotenv";
 import path from "path";
 import { readFile, writeFile, mkdir, readdir, access } from "fs/promises";
+import { logStep } from "./loader-console";
 
-dotenv.config({ path: path.resolve(process.cwd(), ".env") });
+//dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 
 const OPENAI_API_KEY = "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";
 const MODEL = "text-embedding-3-small";
 
 if (!OPENAI_API_KEY) {
-  console.error("❌ Missing OpenAI API key");
+  console.error("❌ Missing OpenAI API key in environment. Check your .env file.");
   process.exit(1);
 } else {
-  console.log("🔑 OpenAI key loaded");
+  logStep("embedder", "🔑 OpenAI key loaded");
 }
 
 const OUTPUT_DIR = path.resolve(process.cwd(), "output");
 const CHUNKS_DIR = path.join(OUTPUT_DIR, "chunks");
 const EMBEDDINGS_FILE = path.join(OUTPUT_DIR, "embedded-chunks.json");
 const PROGRESS_FILE = path.join(OUTPUT_DIR, "operations-progress.json");
-const MAX_CHARS = 24000; // ~7000-8000 tokens
 
 async function exists(filePath: string) {
   try {
@@ -45,21 +45,10 @@ interface EmbeddedChunk extends Chunk {
 }
 
 interface ProgressData {
-  collector?: {
-    lastCollectedId: number;
-    collectedCount: number;
-  };
-  scraper?: {
-    lastScrapedIds: string[];
-    totalScraped: number;
-  };
-  chunker?: {
-    lastChunkedId: number;
-  };
   embedder?: {
     embeddedCount: number;
     embeddedIds: string[];
-  };  
+  };
   [key: string]: unknown;
 }
 
@@ -76,22 +65,16 @@ async function saveProgress(progress: ProgressData) {
 }
 
 async function fetchEmbedding(text: string): Promise<number[]> {
-  const input = text.length > MAX_CHARS ? text.slice(0, MAX_CHARS) : text;
-
   const response = await fetch("https://api.openai.com/v1/embeddings", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${OPENAI_API_KEY}`,
     },
-    body: JSON.stringify({
-      input,
-      model: MODEL,
-    }),
+    body: JSON.stringify({ input: text, model: MODEL })
   });
 
   const json = await response.json();
-
   if (!response.ok || !json.data || !json.data[0]) {
     console.error("❌ OpenAI API error:", JSON.stringify(json, null, 2));
     throw new Error("Failed to fetch embedding.");
@@ -100,54 +83,53 @@ async function fetchEmbedding(text: string): Promise<number[]> {
   return json.data[0].embedding;
 }
 
-async function run() {
+export async function embedChunks(): Promise<number> {
   await mkdir(path.dirname(EMBEDDINGS_FILE), { recursive: true });
 
   const progress = await loadProgress();
-  if (!progress.embedder) {
-    progress.embedder = { embeddedCount: 0, embeddedIds: [] };
-  } else {
-    progress.embedder.embeddedIds ??= [];
-    progress.embedder.embeddedCount ??= 0;
-  }
-  
+  progress.embedder ??= { embeddedCount: 0, embeddedIds: [] };
 
   const files = await readdir(CHUNKS_DIR);
   const jsonFiles = files.filter((f) => f.endsWith("-chunks.json"));
 
-  const allEmbeddedChunks: EmbeddedChunk[] = [];
+  let embeddedChunks: EmbeddedChunk[] = [];
+  if (await exists(EMBEDDINGS_FILE)) {
+    const raw = await readFile(EMBEDDINGS_FILE, "utf-8");
+    embeddedChunks = JSON.parse(raw);
+  }
 
   const embeddedSet = new Set(progress.embedder.embeddedIds);
+  let count = 0;
 
-    for (const file of jsonFiles) {
-        const filePath = path.join(CHUNKS_DIR, file);
-        const raw = await readFile(filePath, "utf-8");
-        const chunks: Chunk[] = JSON.parse(raw);
+  for (const file of jsonFiles) {
+    const filePath = path.join(CHUNKS_DIR, file);
+    const raw = await readFile(filePath, "utf-8");
+    const chunks: Chunk[] = JSON.parse(raw);
 
-        for (const chunk of chunks) {
-            const id = `${chunk.sourceId}-${chunk.chunkIndex}`;
-            
-            if (embeddedSet.has(id)) {
-                console.log(`⏭️  Skipping already embedded chunk: ${id}`);
-                continue;
-            }
-            
-            const embedding = await fetchEmbedding(chunk.text);
-            const embedded: EmbeddedChunk = { ...chunk, embedding };
-            allEmbeddedChunks.push(embedded);
-            
-            progress.embedder.embeddedIds.push(id);
-            progress.embedder.embeddedCount++;
-            await saveProgress(progress);
-            
-            console.log(`✅ Embedded chunk ${id}`);
-        }
-        
+    for (const chunk of chunks) {
+      const id = `${chunk.sourceId}-${chunk.chunkIndex}`;
+      if (embeddedSet.has(id)) {
+        logStep("embedder", `⏭️  Skipping already embedded chunk: ${id}`);
+        continue;
+      }
+
+      const embedding = await fetchEmbedding(chunk.text);
+      embeddedChunks.push({ ...chunk, embedding });
+
+      progress.embedder.embeddedIds.push(id);
+      progress.embedder.embeddedCount++;
+      count++;
+      await saveProgress(progress);
+
+      logStep("embedder", `✅ Embedded chunk ${id}`);
     }
+  }
 
-
-  await writeFile(EMBEDDINGS_FILE, JSON.stringify(allEmbeddedChunks, null, 2));
-  console.log("🎉 Done embedding chunks.");
+  await writeFile(EMBEDDINGS_FILE, JSON.stringify(embeddedChunks, null, 2));
+  logStep("embedder", `💾 Saved ${count} new embeddings.`);
+  return count;
 }
 
-run();
+if (require.main === module) {
+  embedChunks();
+}
