@@ -1,12 +1,8 @@
 // search-chunks.ts (modular version)
-//import dotenv from "dotenv";
 import path from "path";
 import { readFile, access, mkdir, writeFile } from "fs/promises";
 import { EmbeddedChunk } from "./rerank-chunks";
 import rerankChunks from "./rerank-chunks";
-import readline from "readline/promises";
-
-//dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 
 const OUTPUT_DIR = path.resolve(process.cwd(), "output");
 const EMBEDDINGS_FILE = path.join(OUTPUT_DIR, "embedded-chunks.json");
@@ -36,7 +32,7 @@ function cosineSimilarity(a: number[], b: number[]): number {
 }
 
 async function fetchEmbedding(text: string): Promise<number[]> {
-  const OPENAI_API_KEY = "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";
+  const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
   const MODEL = "text-embedding-3-small";
 
   const response = await fetch("https://api.openai.com/v1/embeddings", {
@@ -100,7 +96,7 @@ export async function searchChunks(question: string): Promise<EmbeddedChunk[]> {
 }
 
 // CLI entry point for manual testing
-if (process.argv[1].endsWith("search-chunks.ts")) {
+/*if (process.argv[1].endsWith("search-chunks.ts")) {
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
   rl.question("❓ Enter your legal question: ").then(async (question) => {
     rl.close();
@@ -117,5 +113,5 @@ if (process.argv[1].endsWith("search-chunks.ts")) {
       console.error("❌ Error:", err);
     }
   });
-}
+}*/
 export type { EmbeddedChunk };

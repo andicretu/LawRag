@@ -1,19 +1,9 @@
-// rerank-chunks.ts
-import dotenv from "dotenv";
-import path from "path";
+
 import { writeFile } from "fs/promises";
-
-dotenv.config({ path: path.resolve(process.cwd(), ".env") });
-
-const OPENAI_API_KEY = "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";
+import path from "path";
 
 const OUTPUT_DIR = path.resolve(process.cwd(), "output");
 const RELEVANT_FILE = path.join(OUTPUT_DIR, "relevant-chunks.json");
-
-if (!OPENAI_API_KEY) {
-  console.error("❌ Missing OpenAI API key");
-  process.exit(1);
-}
 
 interface Chunk {
   sourceId: string;
@@ -30,6 +20,13 @@ interface EmbeddedChunk extends Chunk {
 }
 
 async function rerankChunks(question: string, topChunks: EmbeddedChunk[]) {
+
+  const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+  if (!OPENAI_API_KEY) {
+    console.error("❌ Missing OpenAI API key(rerank-chunks)");
+    process.exit(1);
+  }
+
   const prompt = (chunkText: string) =>
     `Întrebare: ${question}\nText legal:\n"""${chunkText}"""\nRăspunde textul la întrebare? Răspunde doar cu \"DA\" sau \"NU\".`;
 
