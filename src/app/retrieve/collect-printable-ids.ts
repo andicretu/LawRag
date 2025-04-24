@@ -1,13 +1,30 @@
-// collect-printable-ids.ts
+// collect-printable-ids.ts (PostgreSQL version)
 import puppeteer from "puppeteer";
 import { mkdir, readFile, writeFile, access } from "fs/promises";
 import path from "path";
 import { logStep } from "../loader-console";
+import { Client } from "pg";
+import dotenv from "dotenv";
+import readline from "readline";
+
+
+dotenv.config();
 
 const OUTPUT_DIR = path.resolve(process.cwd(), "output");
-const IDS_FILE = path.join(OUTPUT_DIR, "printable-ids.json");
 const PROGRESS_FILE = path.join(OUTPUT_DIR, "operations-progress.json");
-const MAX_CODES = 260;
+
+let stopRequested = false;
+
+readline.emitKeypressEvents(process.stdin);
+if (process.stdin.isTTY) {
+  process.stdin.setRawMode(true);
+  process.stdin.on("keypress", (str, key) => {
+    if (key.name === "q" || key.name === "Q") {
+      console.log("👋 Quit requested. Finishing current loop...");
+      stopRequested = true;
+    }
+  });
+}
 const START_ID = 111000;
 const END_ID = 113000;
 
@@ -43,6 +60,8 @@ async function saveProgress(progress: ProgressData): Promise<void> {
 }
 
 export async function collectPrintableIds() {
+  console.log("Press 'Q' at any time to stop collecting.");
+
   await mkdir(OUTPUT_DIR, { recursive: true });
 
   const progress = await loadProgress();
@@ -50,31 +69,26 @@ export async function collectPrintableIds() {
     progress.collector = { lastCollectedId: START_ID - 1, collectedCount: 0 };
   }
 
-  let lastCollectedId = Number(progress.collector?.lastCollectedId ?? START_ID - 1);
+  const lastCollectedId = Number(progress.collector?.lastCollectedId ?? START_ID - 1);
   let collectedCount = Number(progress.collector?.collectedCount ?? 0);
-  
+
   if (isNaN(lastCollectedId)) {
     logStep("collector", `⚠️ Invalid lastCollectedId in progress file. Resetting to ${START_ID - 1}`);
   }
-  
 
-  let codes: string[] = [];
-  if (await exists(IDS_FILE)) {
-    const raw = await readFile(IDS_FILE, "utf-8");
-    const data = JSON.parse(raw);
-    codes = Array.isArray(data.codes) ? data.codes : [];
-  }
-
-  const existingCodes = new Set(codes.map((entry) => entry.split(":")[1]));
-  let currentId = lastCollectedId + 1;
+  const client = new Client({ connectionString: process.env.DATABASE_URL });
+  await client.connect();
 
   const browser = await puppeteer.launch({ headless: true });
   const page = await browser.newPage();
 
-  logStep("collector", `🔍 Starting from ID ${currentId}, collected so far: ${collectedCount}`);
+  logStep("collector", `🔍 Starting from ID ${lastCollectedId + 1}, collected so far: ${collectedCount}`);
 
   try {
-    for (; currentId <= END_ID && collectedCount < MAX_CODES; currentId++) {
+    for (let currentId = lastCollectedId + 1;
+      currentId <= END_ID && !stopRequested;
+      currentId++)
+     {
       const url = `http://legislatie.just.ro/Public/DetaliiDocument/${currentId}`;
       try {
         await page.goto(url, { waitUntil: "domcontentloaded", timeout: 10000 });
@@ -84,32 +98,37 @@ export async function collectPrintableIds() {
           return a ? a.getAttribute("href")?.split("/").pop() : null;
         });
 
-        if (code && !existingCodes.has(code)) {
-          const fullEntry = `${currentId}:${code}`;
-          codes.push(fullEntry);
-          existingCodes.add(code);
-          collectedCount++;
-          logStep("collector", `✅ Found: ${fullEntry}`);
+        if (code) {
+          const res = await client.query(
+            `INSERT INTO printable_ids (detalii_id, printable_code)
+             VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+            [currentId, code]
+          );
+
+          if (res.rowCount! > 0) {
+            collectedCount++;
+            logStep("collector", `✅ Inserted: ${currentId}:${code}`);
+          } else {
+            logStep("collector", `❌ Skipped ${currentId} (already in DB)`);
+          }
         } else {
-          logStep("collector", `❌ Skipping ${currentId} (no printable or duplicate)`);
+          logStep("collector", `❌ Skipping ${currentId} (no printable code)`);
         }
 
-        lastCollectedId = currentId;
-        progress.collector = { lastCollectedId, collectedCount };
-        await writeFile(IDS_FILE, JSON.stringify({ codes }, null, 2));
+        progress.collector = { lastCollectedId: currentId, collectedCount };
         await saveProgress(progress);
-
       } catch {
         logStep("collector", `⚠️ Skipping ${currentId} (timeout/error)`);
       }
     }
   } finally {
     await browser.close();
+    await client.end();
   }
 
   logStep("collector", `🎉 Done. Total collected: ${collectedCount}`);
 }
 
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   collectPrintableIds();
 }
