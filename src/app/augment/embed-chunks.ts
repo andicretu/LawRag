@@ -4,7 +4,7 @@ import { readFile, writeFile, mkdir, readdir, access } from "fs/promises";
 import { logStep } from "../loader-console";
 import dotenv from "dotenv";
 
-dotenv.config({ path: path.resolve(process.cwd(), "../../.env") });
+dotenv.config({ path: path.resolve(process.cwd(), "../../../.env") });
 
 const MODEL = "text-embedding-3-small";
 
