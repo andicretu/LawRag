@@ -2,6 +2,7 @@
 import readline from "readline/promises";
 import path from "path";
 import { readFile, access } from "fs/promises";
+import { Client } from "pg";
 import { collectPrintableIds } from "./retrieve/collect-printable-ids";
 import { scrapeLaws } from "./retrieve/scrape-laws";
 import { chunkLaws } from "./retrieve/chunk-laws";
@@ -29,13 +30,20 @@ async function loadProgress() {
 
 async function displayStatus() {
   const progress = await loadProgress();
-  const collector = progress.collector || {};
   const scraper = progress.scraper || {};
   const chunker = progress.chunker || {};
   const embedder = progress.embedder || {};
 
-  console.log("\n📊 Current Document Load Status:");
-  console.log(`🔍 Collector: Start ID = ${collector.lastCollectedId - collector.collectedCount + 1 || "-"}, Last ID = ${collector.lastCollectedId || "-"}, Count = ${collector.collectedCount || 0}`);
+  const client = new Client({ connectionString: process.env.DATABASE_URL });
+  await client.connect();
+
+  const { rows } = await client.query('SELECT MIN(detalii_id) AS start_id, MAX(detalii_id) AS end_id, COUNT(*) AS total_count FROM printable_ids;');
+  const { start_id, end_id, total_count } = rows[0] || {};
+
+  await client.end();
+
+  console.log("\n Current Document Load Status:");
+  console.log(`🔍 Collector: Start ID = ${start_id || "-"}, Last ID = ${end_id || "-"}, Count = ${total_count || 0}`);
   console.log(`📥 Scraper: Scraped IDs = ${scraper.totalScraped || 0}`);
   console.log(`🧩 Chunker: Last Chunked ID = ${chunker.lastChunkedId || "-"}`);
   console.log(`🧠 Embedder: Embedded Count = ${embedder.embeddedCount || 0}`);

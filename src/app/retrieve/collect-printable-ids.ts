@@ -1,7 +1,7 @@
 // collect-printable-ids.ts
 import puppeteer from "puppeteer";
 import type { Page } from "puppeteer";
-import { mkdir, readFile, writeFile, access } from "fs/promises";
+import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
 import { dirname, resolve } from "path";
@@ -17,7 +17,6 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const OUTPUT_DIR = resolve(__dirname, "../output");
-const PROGRESS_FILE = path.join(OUTPUT_DIR, "operations-progress.json");
 
 // Setup flag to allow user to interrupt collection with 'Q'
 let stopRequested = false;
@@ -37,41 +36,6 @@ if (process.stdin.isTTY) {
 // Set document ID range
 const START_ID = 2;
 const END_ID = 200000;
-
-// Helper to check if a file exists
-async function exists(filePath: string) {
-  try {
-    await access(filePath);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-// Type definition for tracking progress
-type ProgressData = {
-  collector?: {
-    lastCollectedId: number;
-    collectedCount: number;
-  };
-  scraper?: unknown;
-  chunker?: unknown;
-  embedder?: unknown;
-};
-
-// Load previous progress state from file
-async function loadProgress(): Promise<ProgressData> {
-  if (await exists(PROGRESS_FILE)) {
-    const raw = await readFile(PROGRESS_FILE, "utf-8");
-    return JSON.parse(raw);
-  }
-  return {};
-}
-
-// Save current progress state to file
-async function saveProgress(progress: ProgressData): Promise<void> {
-  await writeFile(PROGRESS_FILE, JSON.stringify(progress, null, 2));
-}
 
 // Define path to skipped IDs file
 const skippedPath = path.join(OUTPUT_DIR, "skipped-ids.json");
@@ -115,28 +79,28 @@ async function saveReferenceStubs(stubs: ReferenceStub[]) {
 
 // Main function that collects printable law document IDs
 export async function collectPrintableIds() {
+  stopRequested = false;   
   console.log("Press 'Q' at any time to stop collecting.");
 
   await mkdir(OUTPUT_DIR, { recursive: true });
 
-  // Load progress and initialize if missing
-  const progress = await loadProgress();
-  if (!progress.collector) {
-    progress.collector = { lastCollectedId: START_ID - 1, collectedCount: 0 };
-  }
+  // Connect to PostgreSQL
+  const client = new Client({ connectionString: process.env.DATABASE_URL });
+  await client.connect();
 
-  const lastCollectedId = Number(progress.collector?.lastCollectedId ?? START_ID - 1);
-  let collectedCount = Number(progress.collector?.collectedCount ?? 0);
+  // Get the last recorded id from db
+  const { rows: latestRows } = await client.query('SELECT detalii_id FROM printable_ids ORDER BY collected_at DESC LIMIT 1;');
+  const lastCollectedId = latestRows[0]?.detalii_id ?? START_ID - 1;
+
+  // Get the records count from db
+  const { rows: countRows } = await client.query('SELECT COUNT(*) FROM printable_ids;');
+  const collectedCount = Number(countRows[0]?.count ?? 0);
 
   if (isNaN(lastCollectedId)) {
     logStep("collector", `Invalid lastCollectedId in progress file. Resetting to ${START_ID - 1}`);
   }
 
   const skippedIds = await loadSkipped();
-
-  // Connect to PostgreSQL
-  const client = new Client({ connectionString: process.env.DATABASE_URL });
-  await client.connect();
 
   // Launch Puppeteer browser
   const browser = await puppeteer.launch({ headless: true });
@@ -175,7 +139,6 @@ export async function collectPrintableIds() {
           );
 
           if (res.rowCount! > 0) {
-            collectedCount++;
             logStep("collector", `Inserted: ${currentId}:${code}`);
           } else {
             logStep("collector", `Skipped ${currentId} (already in DB)`);
@@ -191,11 +154,6 @@ export async function collectPrintableIds() {
           await saveReferenceStubs([...existingStubs, ...newStubs]);
           logStep("collector", `Found ${newStubs.length} references for ID ${currentId}`);
         }
-
-        // Update progress
-        progress.collector = { lastCollectedId: currentId, collectedCount };
-        await saveProgress(progress);
-
       } catch {
         // Handle timeouts and other navigation errors
         logStep("collector", `Skipping ${currentId} (timeout/error), added to skipped list`);
@@ -205,11 +163,14 @@ export async function collectPrintableIds() {
     }
   } finally {
     // Cleanup: close browser and DB connection
+    const { rows: updatedCountRows } = await client.query('SELECT COUNT(*) FROM printable_ids;');
+    const updatedCollectedCount = Number(updatedCountRows[0]?.count ?? 0);
+
+    logStep("collector", `Done. Total collected: ${updatedCollectedCount}`);
+
     await browser.close();
     await client.end();
   }
-
-  logStep("collector", `Done. Total collected: ${collectedCount}`);
 }
 
 //define references structure
