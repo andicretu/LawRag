@@ -1,0 +1,75 @@
+{
+    "lege": {
+      "label": "Lege",
+      "scraping_complexity": "complex"
+    },
+    "hotarare": {
+      "label": "Hotărâre",
+      "scraping_complexity": "medium"
+    },
+    "ordonanta": {
+      "label": "Ordonanță",
+      "scraping_complexity": "medium"
+    },
+    "ordonanta_de_urgenta": {
+      "label": "Ordonanță de urgență",
+      "scraping_complexity": "medium"
+    },
+    "decizie": {
+      "label": "Decizie",
+      "scraping_complexity": "simple"
+    },
+    "ordin": {
+      "label": "Ordin",
+      "scraping_complexity": "medium"
+    },
+    "regulament": {
+      "label": "Regulament",
+      "scraping_complexity": "medium"
+    },
+    "norme": {
+      "label": "Norme",
+      "scraping_complexity": "medium"
+    },
+    "norme_metodologice": {
+      "label": "Norme metodologice",
+      "scraping_complexity": "medium"
+    },
+    "metodologie": {
+      "label": "Metodologie",
+      "scraping_complexity": "medium"
+    },
+    "program": {
+      "label": "Program",
+      "scraping_complexity": "simple"
+    },
+    "strategie_nationala": {
+      "label": "Strategie națională",
+      "scraping_complexity": "simple"
+    },
+    "ghid_finantare": {
+      "label": "Ghid de finanțare",
+      "scraping_complexity": "simple"
+    },
+    "cod": {
+      "label": "Cod",
+      "scraping_complexity": "complex"
+    },
+    "criterii_si_norme": {
+      "label": "Criterii și norme",
+      "scraping_complexity": "medium"
+    },
+    "caiet_de_sarcini": {
+      "label": "Caiet de sarcini",
+      "scraping_complexity": "simple"
+    },
+    "anexa": {
+      "label": "Anexă",
+      "scraping_complexity": "medium"
+    },
+    "unknown": {
+      "label": "Necunoscut",
+      "scraping_complexity": "simple"
+    }
+  }
+  

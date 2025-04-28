@@ -132,19 +132,21 @@ export async function collectPrintableIds() {
         });
 
         let title = "";
-        let emitent: string | null = null;
-
+        // collect titlu
         try {
             title = await page.$eval('h2.titlu_document', el => el.textContent?.trim() ?? "");
+            console.log("🔍 TitleOld:", title);
         } catch {
           try {
             title = await page.$eval('span.S_DEN', el => el.textContent?.trim() ?? "");
+            console.log("🔍 TitleNew:", title);
           } catch {
             console.log(`⚠️ Warning: Could not extract title for ID ${currentId} in both new and old formats`);
           }
         }
 
-        
+        //collect emitent
+        let emitent: string | null = null;
         try {
           emitent = await page.evaluate(() => {
             const rows = document.querySelectorAll('#metaDocument table tr');
@@ -154,14 +156,12 @@ export async function collectPrintableIds() {
                 return cells[1].textContent?.trim() ?? null;
               }
             }
-
             // search "emitent" in old page structure
             const oldEmitentTitle = document.querySelector('table.S_EMT .S_EMT_TTL');
             const oldEmitentBody = document.querySelector('table.S_EMT .S_EMT_BDY li');
             if (oldEmitentTitle && oldEmitentBody && oldEmitentTitle.textContent?.toLowerCase().includes('emitent')) {
               return oldEmitentBody.textContent?.trim() ?? null;
             }
-
             return null;
           });
         } catch (err) {
@@ -174,15 +174,12 @@ export async function collectPrintableIds() {
         
         // Always classify domain even if missing
         const domainArray = classifyDomain(title, emitent);
+        console.log("🔍 DEBUG: Current ID", currentId);
+        console.log("🔍 DEBUG: Domain Array", domainArray);
+        console.log("🔍 Printable Code:", code);
+        console.log("🔍 Title:", title);
+        console.log("🔍 Emitent:", emitent) ;
         
-        // Insert into PostgreSQL
-        await client.query(
-          `INSERT INTO printable_ids (detalii_id, printable_code, domain)
-           VALUES ($1, $2, $3)
-           ON CONFLICT (detalii_id) DO UPDATE SET domain = EXCLUDED.domain`,
-          [currentId, code, domainArray]
-        );
-
         // Insert to DB if found
         if (code) {
           const res = await client.query(
@@ -190,6 +187,23 @@ export async function collectPrintableIds() {
              VALUES ($1, $2, $3) ON CONFLICT (detalii_id) DO UPDATE SET domain = EXCLUDED.domain`,
             [currentId, code, domainArray]
           );
+
+          // Prepare missing fields if needed
+          const detectedType = "UNKNOWN"; // can detect it later  automatically from title or emitent
+          const publicationDate = null;   // I do not have it yet from DetaliiDocument scraping
+
+          // Insert into documents
+          try {
+            await client.query(
+              `INSERT INTO documents (source_id, code, title, type, emitent, publication_date, domain)
+               VALUES ($1, $2, $3, $4, $5, $6, $7)
+               ON CONFLICT (source_id) DO UPDATE 
+               SET title = EXCLUDED.title, type = EXCLUDED.type, emitent = EXCLUDED.emitent, publication_date = EXCLUDED.publication_date, domain = EXCLUDED.domain`,
+              [currentId.toString(), code, title, detectedType, emitent, publicationDate, domainArray]
+            );
+          } catch (err) {
+            console.log(`❌ Failed to insert into documents for ID ${currentId}:`, err);
+          }
 
           if (res.rowCount! > 0) {
             logStep("collector", `Inserted: ${currentId}:${code}`);

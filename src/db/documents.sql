@@ -2,11 +2,22 @@ CREATE TYPE document_type AS ENUM (
     'lege',
     'hotarare',
     'ordonanta',
+    'ordonanta_de_urgenta',
     'decizie',
     'ordin',
     'regulament',
     'norme',
-    'cod'
+    'norme_metodologice',
+    'metodologie',
+    'program',
+    'strategie_nationala',
+    'ghid_finantare',
+    'ghid'
+    'cod',
+    'criterii_si_norme',
+    'caiet_de_sarcini',
+    'anexa',
+    'unknown'
 );
 
 CREATE TABLE documents (
