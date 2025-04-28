@@ -20,4 +20,6 @@ CREATE TABLE documents (
     publication_date DATE,
     fetched_at TIMESTAMP DEFAULT NOW(),
     notes TEXT
+    domain TEXT,            -- New: assigned field, e.g., 'sanatate'
+    keywords TEXT[]         -- New: optional extracted keywords
 );

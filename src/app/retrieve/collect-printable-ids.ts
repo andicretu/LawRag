@@ -9,6 +9,7 @@ import { logStep } from "../loader-console";
 import { Client } from "pg";
 import dotenv from "dotenv";
 import readline from "readline";
+import { classifyDomain } from "../domain/classifyDomain";
 
 // Load environment variables from .env file
 dotenv.config();
@@ -130,12 +131,64 @@ export async function collectPrintableIds() {
           return a ? a.getAttribute("href")?.split("/").pop() : null;
         });
 
+        let title = "";
+        let emitent: string | null = null;
+
+        try {
+            title = await page.$eval('h2.titlu_document', el => el.textContent?.trim() ?? "");
+        } catch {
+          try {
+            title = await page.$eval('span.S_DEN', el => el.textContent?.trim() ?? "");
+          } catch {
+            console.log(`⚠️ Warning: Could not extract title for ID ${currentId} in both new and old formats`);
+          }
+        }
+
+        
+        try {
+          emitent = await page.evaluate(() => {
+            const rows = document.querySelectorAll('#metaDocument table tr');
+            for (const row of rows) {
+              const cells = row.querySelectorAll('td');
+              if (cells.length >= 2 && cells[0].textContent?.toLowerCase().includes('emitent')) {
+                return cells[1].textContent?.trim() ?? null;
+              }
+            }
+
+            // search "emitent" in old page structure
+            const oldEmitentTitle = document.querySelector('table.S_EMT .S_EMT_TTL');
+            const oldEmitentBody = document.querySelector('table.S_EMT .S_EMT_BDY li');
+            if (oldEmitentTitle && oldEmitentBody && oldEmitentTitle.textContent?.toLowerCase().includes('emitent')) {
+              return oldEmitentBody.textContent?.trim() ?? null;
+            }
+
+            return null;
+          });
+        } catch (err) {
+          console.log(`⚠️ Warning: Could not extract emitent for ID ${currentId}`, err);
+        }
+
+        if (!title && !emitent) {
+          console.log(`⚠️ ID ${currentId} has no title or emitent. Setting domain to unknown.`);
+        }
+        
+        // Always classify domain even if missing
+        const domainArray = classifyDomain(title, emitent);
+        
+        // Insert into PostgreSQL
+        await client.query(
+          `INSERT INTO printable_ids (detalii_id, printable_code, domain)
+           VALUES ($1, $2, $3)
+           ON CONFLICT (detalii_id) DO UPDATE SET domain = EXCLUDED.domain`,
+          [currentId, code, domainArray]
+        );
+
         // Insert to DB if found
         if (code) {
           const res = await client.query(
-            `INSERT INTO printable_ids (detalii_id, printable_code)
-             VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-            [currentId, code]
+            `INSERT INTO printable_ids (detalii_id, printable_code, domain)
+             VALUES ($1, $2, $3) ON CONFLICT (detalii_id) DO UPDATE SET domain = EXCLUDED.domain`,
+            [currentId, code, domainArray]
           );
 
           if (res.rowCount! > 0) {
@@ -186,6 +239,23 @@ export async function extractReferencesFromPage(
   page: Page,
   detaliiId: number
 ): Promise<ReferenceStub[]> {
+
+  await page.evaluate(() => {
+    const checkboxes = document.querySelectorAll('.fisa_act_chk');
+    checkboxes.forEach(cb => {
+      if (!(cb as HTMLInputElement).checked) {
+        (cb as HTMLInputElement).click();
+      }
+    });
+  });
+
+  // New Step: wait for tables to appear
+  await page.waitForSelector('#actiuni_suferite table', { timeout: 5000 }).catch(() => {});
+  await page.waitForSelector('#actiuni_induse table', { timeout: 5000 }).catch(() => {});
+  await page.waitForSelector('#refera_pe table', { timeout: 5000 }).catch(() => {});
+  await page.waitForSelector('#referit_de table', { timeout: 5000 }).catch(() => {});
+
+
   const references: ReferenceStub[] = await page.evaluate((detaliiId) => {
     const rawRefs: {
       sourceDetaliiId: number;

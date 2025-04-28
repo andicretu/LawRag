@@ -1,0 +1,43 @@
+{
+    "sanatate": {
+      "label": "Sănătate publică",
+      "keywords": ["sanitar", "sănătate", "ministerul sănătății", "ansvsa", "medical", "medic", "pacient", "spital",  "medicament", "medicamente", "farmacie"]
+    },
+    "educatie": {
+      "label": "Educație",
+      "keywords": ["educație", "universitar", "ministerul educației"]
+    },
+    "munca": {
+      "label": "Muncă și protecția muncii",
+      "keywords": ["muncii", "lucrător", "contract de muncă", "ministerul muncii"]
+    },
+    "agricultura": {
+      "label": "Agricultură",
+      "keywords": ["agricol", "fitosanitar", "agricultură", "fermier"]
+    },
+    "civil": {
+      "label": "Drept civil",
+      "keywords": ["cod civil", "procedura civilă"]
+    },
+    "penal": {
+      "label": "Drept penal",
+      "keywords": ["cod penal", "procedura penală"]
+    },
+    "administrativ": {
+      "label": "Drept administrativ",
+      "keywords": ["contencios administrativ", "administrativ"]
+    },
+    "fiscal": {
+      "label": "Drept fiscal",
+      "keywords": ["cod fiscal", "impozit", "taxă", "TVA"]
+    },
+    "gdpr": {
+      "label": "Protecția datelor personale",
+      "keywords": ["GDPR", "protecția datelor"]
+    },
+    "constitutional": {
+      "label": "Drept constituțional",
+      "keywords": ["constituție", "revizuirea constituției"]
+    }
+  }
+  

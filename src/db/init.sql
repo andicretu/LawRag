@@ -6,4 +6,5 @@ CREATE TABLE IF NOT EXISTS printable_ids (
     'https://legislatie.just.ro/Public/FormaPrintabila/' || printable_code
   ) STORED,
   collected_at TIMESTAMP DEFAULT NOW()
+  domain TEXT;            -- New: assigned field, e.g., 'sanatate'
 );
