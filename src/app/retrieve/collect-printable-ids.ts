@@ -11,6 +11,8 @@ import dotenv from "dotenv";
 import readline from "readline";
 import { classifyDomain } from "../domain/classifyDomain";
 import { extractPublicationDate } from "./extract-publication-date";
+import { detectDocumentType } from "./detect-document-type";
+
 
 
 // Load environment variables from .env file
@@ -155,6 +157,13 @@ export async function collectPrintableIds() {
           console.log(`⚠️ Warning: Could not extract publication date for ID ${currentId}`, err);
         }
 
+        let detectedType: string | null = null;
+        try {
+          detectedType = detectDocumentType(title);
+        } catch (err) {
+          console.log(`⚠️ Warning: Could not detect document type for ID ${currentId}`, err);
+        }
+
         //collect emitent
         let emitent: string | null = null;
         try {
@@ -197,9 +206,6 @@ export async function collectPrintableIds() {
              VALUES ($1, $2, $3) ON CONFLICT (detalii_id) DO UPDATE SET domain = EXCLUDED.domain`,
             [currentId, code, domainArray]
           );
-
-          // Prepare missing fields if needed
-          const detectedType = "UNKNOWN"; // can detect it later  automatically from title or emitent
           
           // Insert into documents
           try {

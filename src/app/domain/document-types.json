@@ -67,6 +67,10 @@
       "label": "Anexă",
       "scraping_complexity": "medium"
     },
+    "decret": {
+      "label": "Decret",
+      "scraping_complexity": "medium"
+    },
     "unknown": {
       "label": "Necunoscut",
       "scraping_complexity": "simple"
