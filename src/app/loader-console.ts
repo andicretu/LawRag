@@ -4,7 +4,7 @@ import path from "path";
 import { readFile, access } from "fs/promises";
 import { Client } from "pg";
 import { collectPrintableIds } from "./retrieve/collect-printable-ids";
-import { scrapeLaws } from "./retrieve/scrape-laws";
+import { parsePrintablePage } from "./retrieve/complex-parser";
 import { chunkLaws } from "./retrieve/chunk-laws";
 import { embedChunks } from "./augment/embed-chunks";
 
@@ -63,17 +63,24 @@ async function startCLI() {
 
   while (true) {
     await displayStatus();
-    const command = await rl.question("👉 Command (collect | scrape | chunk | embed | exit): ");
+    const command = await rl.question("👉 Command (collect | parse | chunk | embed | exit): ");
 
     if (command === "collect") {
       await collectPrintableIds();
-    } else if (command === "scrape") {
-      await scrapeLaws();
     } else if (command === "chunk") {
       await chunkLaws();
     } else if (command === "embed") {
       await embedChunks();
-    } else if (command === "exit") {
+    } else if (command === "parse") {
+      const documentId = Number(await rl.question("Enter documentId: "));
+      const printableCode = await rl.question("Enter printableCode: ");
+      if (!documentId || !printableCode) {
+        console.log("❌ Invalid input. Must provide both documentId and printableCode.");
+        continue;
+      }
+      await parsePrintablePage(documentId, printableCode);
+    }
+    else if (command === "exit") {
       console.log("👋 Exiting CLI.");
       break;
     } else {
