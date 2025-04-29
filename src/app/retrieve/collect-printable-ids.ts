@@ -10,6 +10,8 @@ import { Client } from "pg";
 import dotenv from "dotenv";
 import readline from "readline";
 import { classifyDomain } from "../domain/classifyDomain";
+import { extractPublicationDate } from "./extract-publication-date";
+
 
 // Load environment variables from .env file
 dotenv.config();
@@ -144,6 +146,14 @@ export async function collectPrintableIds() {
             console.log(`⚠️ Warning: Could not extract title for ID ${currentId} in both new and old formats`);
           }
         }
+        
+        //call extract publication date
+        let publicationDate: string | null = null;
+        try {
+          publicationDate = await extractPublicationDate(page);
+        } catch (err) {
+          console.log(`⚠️ Warning: Could not extract publication date for ID ${currentId}`, err);
+        }
 
         //collect emitent
         let emitent: string | null = null;
@@ -190,16 +200,15 @@ export async function collectPrintableIds() {
 
           // Prepare missing fields if needed
           const detectedType = "UNKNOWN"; // can detect it later  automatically from title or emitent
-          const publicationDate = null;   // I do not have it yet from DetaliiDocument scraping
-
+          
           // Insert into documents
           try {
             await client.query(
-              `INSERT INTO documents (source_id, code, title, type, emitent, publication_date, domain)
-               VALUES ($1, $2, $3, $4, $5, $6, $7)
+              `INSERT INTO documents (source_id, code, title, type, emitent, publication_date, domain, url)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
                ON CONFLICT (source_id) DO UPDATE 
-               SET title = EXCLUDED.title, type = EXCLUDED.type, emitent = EXCLUDED.emitent, publication_date = EXCLUDED.publication_date, domain = EXCLUDED.domain`,
-              [currentId.toString(), code, title, detectedType, emitent, publicationDate, domainArray]
+               SET title = EXCLUDED.title, type = EXCLUDED.type, emitent = EXCLUDED.emitent, publication_date = EXCLUDED.publication_date, domain = EXCLUDED.domain, url = EXCLUDED.url`,
+              [currentId.toString(), code, title, detectedType, emitent, publicationDate, domainArray, url]
             );
           } catch (err) {
             console.log(`❌ Failed to insert into documents for ID ${currentId}:`, err);
@@ -227,6 +236,7 @@ export async function collectPrintableIds() {
         skippedIds.push(currentId);
         await saveSkipped(skippedIds);
       }
+      
     }
   } finally {
     // Cleanup: close browser and DB connection

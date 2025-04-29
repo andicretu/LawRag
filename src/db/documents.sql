@@ -17,7 +17,7 @@ CREATE TYPE document_type AS ENUM (
     'criterii_si_norme',
     'caiet_de_sarcini',
     'anexa',
-    'unknown'
+    'UNKNOWN'
 );
 
 CREATE TABLE documents (
