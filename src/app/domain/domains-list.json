@@ -1,43 +1,46 @@
 {
-    "sanatate": {
-      "label": "Sănătate publică",
-      "keywords": ["sanitar", "sănătate", "ministerul sănătății", "ansvsa", "medical", "medic", "pacient", "spital",  "medicament", "medicamente", "farmacie"]
-    },
-    "educatie": {
-      "label": "Educație",
-      "keywords": ["educație", "universitar", "ministerul educației"]
-    },
-    "munca": {
-      "label": "Muncă și protecția muncii",
-      "keywords": ["muncii", "lucrător", "contract de muncă", "ministerul muncii"]
-    },
-    "agricultura": {
-      "label": "Agricultură",
-      "keywords": ["agricol", "fitosanitar", "agricultură", "fermier"]
-    },
-    "civil": {
-      "label": "Drept civil",
-      "keywords": ["cod civil", "procedura civilă"]
-    },
-    "penal": {
-      "label": "Drept penal",
-      "keywords": ["cod penal", "procedura penală"]
-    },
-    "administrativ": {
-      "label": "Drept administrativ",
-      "keywords": ["contencios administrativ", "administrativ"]
-    },
-    "fiscal": {
-      "label": "Drept fiscal",
-      "keywords": ["cod fiscal", "impozit", "taxă", "TVA"]
-    },
-    "gdpr": {
-      "label": "Protecția datelor personale",
-      "keywords": ["GDPR", "protecția datelor"]
-    },
-    "constitutional": {
-      "label": "Drept constituțional",
-      "keywords": ["constituție", "revizuirea constituției"]
-    }
+  "sanatate": {
+    "label": "Sănătate publică",
+    "keywords": ["sanitar", "sănătate", "ministerul sănătății", "ansvsa", "medical", "medic", "pacient", "spital", "medicament", "medicamente", "farmacie", "tratament", "terapie", "clinică", "asistent medical", "bolnav", "vaccinare", "epidemie", "diagnostic"]
+  },
+  "educatie": {
+    "label": "Educație",
+    "keywords": ["educație", "universitar", "ministerul educației", "elev", "elevi", "profesor", "profesori", "catedra", "scoala", "liceu", "facultate", "învățământ", "curriculum", "examene", "bacalaureat", "grădiniță", "note", "evaluare"]
+  },
+  "munca": {
+    "label": "Muncă și protecția muncii",
+    "keywords": ["muncii", "lucrător", "contract de muncă", "ministerul muncii", "salariu", "șomaj", "angajator", "angajat", "sindicat", "concediu", "drepturi salariale", "loc de muncă", "norme de muncă", "ore suplimentare", "accident de muncă"]
+  },
+  "agricultura": {
+    "label": "Agricultură",
+    "keywords": ["agricol", "fitosanitar", "agricultură", "fermier", "teren agricol", "zootehnie", "culturi", "recoltă", "agroturism", "tratamente agricole", "irigații", "subvenție", "ministerul agriculturii"]
+  },
+  "civil": {
+    "label": "Drept civil",
+    "keywords": ["cod civil", "procedura civilă", "contract", "succesiune", "testament", "proprietate", "obligații", "răspundere civilă", "persoană fizică", "persoană juridică", "familie", "custodie"]
+  },
+  "penal": {
+    "label": "Drept penal",
+    "keywords": ["cod penal", "procedura penală", "infracțiune", "pedeapsă", "arest", "condamnare", "judecătorie", "avocat", "inculpat", "proces penal", "urmărire penală", "procuror", "victimă"]
+  },
+  "administrativ": {
+    "label": "Drept administrativ",
+    "keywords": ["contencios administrativ", "administrativ", "autoritate publică", "act administrativ", "hotărâre", "prefect", "primărie", "funcționar public", "instituție publică", "ordonanță", "aviz", "minister"]
+  },
+  "fiscal": {
+    "label": "Drept fiscal",
+    "keywords": ["cod fiscal", "impozit", "taxă", "TVA", "anaf", "declarație fiscală", "contribuții", "venit", "taxe locale", "inspecție fiscală", "penalități", "cotizație", "bază impozabilă"]
+  },
+  "gdpr": {
+    "label": "Protecția datelor personale",
+    "keywords": ["GDPR", "protecția datelor", "date cu caracter personal", "confidențialitate", "prelucrarea datelor", "consimțământ", "dreptul la ștergere", "dreptul de acces", "operator de date", "autoritate de supraveghere"]
+  },
+  "constitutional": {
+    "label": "Drept constituțional",
+    "keywords": ["constituție", "revizuirea constituției", "drepturi fundamentale", "libertăți", "separația puterilor", "stat de drept", "curtea constituțională", "lege fundamentală", "cetățenie", "sistem politic"]
+  },
+  "comercial": {
+    "label": "Drept comercial",
+    "keywords": ["comert", "industrie", "antreprenor", "economie", "firma", "banca", "credit", "investiție", "transporturi", "transport", "transporturilor", "societate comercială", "cont bancar", "contract comercial", "licență", "export", "import", "piață", "concurență", "insolvență"]
   }
-  
+}
