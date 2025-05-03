@@ -157,13 +157,6 @@ export async function collectPrintableIds() {
           console.log(`⚠️ Warning: Could not extract publication date for ID ${currentId}`, err);
         }
 
-        let detectedType: string | null = null;
-        try {
-          detectedType = detectDocumentType(title);
-        } catch (err) {
-          console.log(`⚠️ Warning: Could not detect document type for ID ${currentId}`, err);
-        }
-
         //collect emitent
         let emitent: string | null = null;
         try {
@@ -187,8 +180,17 @@ export async function collectPrintableIds() {
           console.log(`⚠️ Warning: Could not extract emitent for ID ${currentId}`, err);
         }
 
+
+        let detectedType: string | null = null;
+        try {
+          detectedType = detectDocumentType(title, emitent);
+        } catch (err) {
+          console.log(`⚠️ Warning: Could not detect document type for ID ${currentId}`, err);
+        }
+
         if (!title && !emitent) {
           console.log(`⚠️ ID ${currentId} has no title or emitent. Setting domain to unknown.`);
+          detectedType = "unknown";
         }
         
         // Always classify domain even if missing

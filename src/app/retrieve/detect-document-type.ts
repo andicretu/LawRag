@@ -1,28 +1,28 @@
-// src/app/retrieve/detect-document-type.ts
+import documentTypesRaw from "../domain/document-types.json";
 
-import documentTypes from "../domain/document-types.json";
+type DocumentTypeDefinition = {
+  label: string;
+  scraping_complexity: string;
+  aliases?: string[];
+};
 
-/**
- * Detects the document type based on the title and optionally emitent.
- * If no match is found, returns "unknown".
- */
-export function detectDocumentType(title: string | null | undefined): string {
-    title = title?.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '') ?? "";
-    title = title?.normalize('NFD').replace(/\p{Diacritic}/gu, '');
+const documentTypes = documentTypesRaw as Record<string, DocumentTypeDefinition>;
 
-  for (const [type, { label }] of Object.entries(documentTypes)) {
-    const keyword = label.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
+export function detectDocumentType(title: string | null | undefined, emitent: string | null): string {
+  if (!title) return "UNKNOWN";
 
-    // Strong match if title starts with the keyword
-    if (title.startsWith(keyword)) {
-      return type;
+  title = title.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
+  emitent = emitent?.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '') ?? "";
+
+  for (const [type, { label, aliases }] of Object.entries(documentTypes)) {
+    const allKeywords = [label, ...(aliases || [])].map(k =>
+      k.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '')
+    );
+
+    for (const keyword of allKeywords) {
+      if (title.startsWith(keyword)) return type;
+      if (title.includes(keyword) || emitent.includes(keyword)) return type;
     }
-
-    // Weaker match if keyword appears somewhere in title
-    if (title.includes(keyword)) {
-      return type;
-    }
-
   }
 
   return "UNKNOWN";
