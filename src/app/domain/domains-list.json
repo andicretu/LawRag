@@ -1,7 +1,7 @@
 {
   "sanatate": {
     "label": "Sănătate publică",
-    "keywords": ["sanitar", "sănătate", "ministerul sănătății", "ansvsa", "medical", "medic", "pacient", "spital", "medicament", "medicamente", "farmacie", "tratament", "terapie", "clinică", "asistent medical", "bolnav", "vaccinare", "epidemie", "diagnostic"]
+    "keywords": ["sanitar", "sănătate", "ministerul sănătății", "ansvsa", "medical", "medic", "pacient", "spital", "medicament", "medicamente", "farmacie", "tratament", "terapie", "clinică", "asistent medical", "boala", "boli", "bolnav", "vaccin", "vaccinare", "epidemie", "diagnostic", "casa de asigurari", "asigurari de sanatate", "asigurare de sanatate", "ambulanta", "ambulator", "cadru medical"]
   },
   "educatie": {
     "label": "Educație",
@@ -41,6 +41,6 @@
   },
   "comercial": {
     "label": "Drept comercial",
-    "keywords": ["comert", "industrie", "antreprenor", "economie", "firma", "banca", "credit", "investiție", "transporturi", "transport", "transporturilor", "societate comercială", "cont bancar", "contract comercial", "licență", "export", "import", "piață", "concurență", "insolvență"]
+    "keywords": ["comert", "industrie", "antreprenor", "economie", "firma", "banca", "credit", "investiție", "transporturi", "transport", "transporturilor", "societate comercială", "cont bancar", "contract comercial", "licență", "export", "import", "piață", "concurență", "insolvență", "asigurare", "asigurari"]
   }
 }

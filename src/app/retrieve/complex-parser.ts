@@ -69,6 +69,29 @@ export async function parsePrintablePage(documentId: number, printableCode: stri
   let currentArticleId: number | null = null;
   let insideArtBody = false;
   let lastLiteraLabel: string | null = null;
+  let currentAnexaId: number | null = null;
+
+  // TABLE PARSING (e.g., tariff tables)
+  const tables = await page.$$('table');
+  for (const table of tables) {
+    const rows = await table.$$('tr');
+    for (const row of rows) {
+      const cells = await row.$$eval('td', tds => tds.map(td => td.textContent?.trim() || ''));
+      if (cells.length >= 3 && /^\d+\./.test(cells[1])) {
+        const label = cells[1];
+        const content = `${cells[2]} – ${cells[3]}`;
+        const uniqueKey = `anexa:tariff:${label}:${content}`;
+        if (seen.has(uniqueKey)) continue;
+        seen.add(uniqueKey);
+
+        await client.query(
+          `INSERT INTO nodes (document_id, parent_id, level, label, content, sort_order, source_class)
+           VALUES ($1, $2, 'subpunct', $3, $4, $5, 'tariff_row')`,
+          [documentId, currentAnexaId, label, content, currentSort++]
+        );
+      }
+    }
+  }
 
   for (const { className, text } of spans) {
     const trimmedText = text.trim();
@@ -159,6 +182,7 @@ export async function parsePrintablePage(documentId: number, printableCode: stri
 
     const insertedId = result.rows[0].id;
     if (level === "articol") currentArticleId = insertedId;
+    if (level === "anexa") currentAnexaId = insertedId;
 
     if (["titlu", "carte", "capitol", "sectiune", "articol", "alineat", "litera", "subpunct"].includes(level)) {
       parentStack.push({ id: insertedId, level });
