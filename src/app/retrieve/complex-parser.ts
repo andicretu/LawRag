@@ -6,45 +6,29 @@ const SPAN_SELECTOR = "span";
 
 const LEVEL_MAP: Record<string, NodeLevel> = {
   S_TITLU: "titlu",
-  S_CARTE_TTL: "carte",
-  S_CAP_TTL: "capitol",
-  S_SEC_TTL: "sectiune",
-  S_ART_TTL: "articol",
-  S_ANEXA_TTL: "anexa",
-  S_PAR: "nota",
-  S_LIT_BDY: "litera",
+  S_CARTE: "carte",
+  S_CAP: "capitol",
+  S_POR: "sectiune",
+  S_ART: "articol",
+  S_ANEXA: "anexa",
   S_DEN: "denumire",
-  S_PUB: "publicare",
-  S_PUB_TTL: "publicare",
-  S_PUB_BDY: "publicare"
-};
-
-const LEVEL_PRIORITY: Record<NodeLevel, number> = {
-  denumire: 0,
-  titlu: 1,
-  carte: 2,
-  capitol: 3,
-  sectiune: 4,
-  articol: 5,
-  alineat: 6,
-  litera: 7,
-  subpunct: 8,
-  anexa: 9,
-  nota: 10,
-  publicare: 11,
-  prefata: 12
+  S_HDR: "descriere",
+  S_EMT: "emitent",
+  S_PUB: "publicare"
 };
 
 type NodeLevel =
-  | "denumire" | "titlu" | "carte" | "capitol" | "sectiune"
-  | "articol" | "alineat" | "litera" | "subpunct" | "anexa"
-  | "nota" | "publicare" | "prefata";
-
-type StackEntry = { id: number; level: NodeLevel };
-
-const CONTAINER_ONLY_CLASSES = new Set([
-  "S_ART", "S_CAP", "S_CAP_BDY", "S_CARTE", "S_SEC"
-]);
+  | "denumire"      // Document name and issuing date
+  | "descriere"     // Header or description
+  | "emitent"       // Issuing institution
+  | "publicare"     // Publication date
+  | "carte"         // Book or main section
+  | "titlu"         // Title
+  | "capitol"       // Chapter, main structural section
+  | "sectiune"      // Section (sub-division within a chapter)
+  | "articol"       // Article, main text section
+  | "anexa"         // Annex, additional document
+  | "nota";         // Note, catch-all for unrecognized sections
 
 export async function parsePrintablePage(documentId: number, printableCode: string) {
   const browser = await puppeteer.launch({ headless: true });
@@ -60,147 +44,51 @@ export async function parsePrintablePage(documentId: number, printableCode: stri
     }))
   );
 
-  const seen = new Set<string>();
   const client = new Client({ connectionString: process.env.DATABASE_URL });
   await client.connect();
 
-  const parentStack: StackEntry[] = [];
   let currentSort = 0;
-  let currentArticleId: number | null = null;
-  let insideArtBody = false;
-  let lastLiteraLabel: string | null = null;
-  let currentAnexaId: number | null = null;
 
-  // TABLE PARSING (e.g., tariff tables)
-  const tables = await page.$$('table');
-  for (const table of tables) {
-    const rows = await table.$$('tr');
-    for (const row of rows) {
-      const cells = await row.$$eval('td', tds => tds.map(td => td.textContent?.trim() || ''));
-      if (cells.length >= 3 && /^\d+\./.test(cells[1])) {
-        const label = cells[1];
-        const content = `${cells[2]} – ${cells[3]}`;
-        const uniqueKey = `anexa:tariff:${label}:${content}`;
-        if (seen.has(uniqueKey)) continue;
-        seen.add(uniqueKey);
-
-        await client.query(
-          `INSERT INTO nodes (document_id, parent_id, level, label, content, sort_order, source_class)
-           VALUES ($1, $2, 'subpunct', $3, $4, $5, 'tariff_row')`,
-          [documentId, currentAnexaId, label, content, currentSort++]
-        );
-      }
-    }
-  }
+  let currentContent = ""; // Accumulates content for each main section
+  let currentLevel: NodeLevel | null = null;
 
   for (const { className, text } of spans) {
     const trimmedText = text.trim();
     if (!trimmedText || /^\s*$/.test(trimmedText)) continue;
 
     const classes = className.split(" ");
-    if (classes.some(cls => CONTAINER_ONLY_CLASSES.has(cls))) continue;
-
     const matchedClass = classes.find(cls => LEVEL_MAP[cls]);
-    let level: NodeLevel = matchedClass ? LEVEL_MAP[matchedClass] : "nota";
-    const upper = trimmedText.toUpperCase();
+    const level: NodeLevel = matchedClass ? LEVEL_MAP[matchedClass] : "nota";
 
-    if (level === "nota" && upper.startsWith("ANEXA")) level = "anexa";
-    if (level === "nota" && upper.startsWith("CAPITOLUL")) level = "capitol";
-    if (level === "nota" && upper.startsWith("TITLUL")) level = "titlu";
-    if (level === "nota" && upper.startsWith("CARTEA")) level = "carte";
-    if (level === "nota" && upper.match(/^ART(\.|ICOLUL)/)) level = "articol";
-
-    if (classes.includes("S_ART_BDY")) {
-      insideArtBody = true;
-      continue;
-    }
-
-    if (insideArtBody && LEVEL_PRIORITY[level] <= LEVEL_PRIORITY["articol"]) {
-      insideArtBody = false;
-    }
-
-    const label = extractLabel(trimmedText);
-    const content = extractContent(trimmedText, label);
-    const sourceClass = className;
-
-    if (insideArtBody && currentArticleId !== null) {
-      if (classes.includes("S_PAR")) {
-        const uniqueKey = `${currentArticleId}:alineat:${label}:${content}`;
-        if (seen.has(uniqueKey)) continue;
-        seen.add(uniqueKey);
-
+    if (level !== currentLevel) {
+      // Save the previous section if it exists
+      if (currentLevel && currentContent.trim()) {
         await client.query(
-          `INSERT INTO nodes (document_id, parent_id, level, label, content, sort_order, source_class)
-           VALUES ($1, $2, 'alineat', $3, $4, $5, $6)`,
-          [documentId, currentArticleId, label, content, currentSort++, sourceClass]
+          `INSERT INTO nodes (document_id, parent_id, level, label, content, sort_order, section_type, source_class)
+           VALUES ($1, NULL, $2, NULL, $3, $4, NULL, $5)`,
+          [documentId, currentLevel, currentContent.trim(), currentSort++, 'main_section']
         );
-        continue;
       }
 
-      if (classes.includes("S_LIT_TTL")) {
-        lastLiteraLabel = extractLabel(trimmedText);
-        continue;
-      }
-
-      if (classes.includes("S_LIT_BDY") && lastLiteraLabel !== null) {
-        const literaContent = extractContent(trimmedText, lastLiteraLabel);
-        const uniqueKey = `${currentArticleId}:litera:${lastLiteraLabel}:${literaContent}`;
-        if (seen.has(uniqueKey)) continue;
-        seen.add(uniqueKey);
-
-        await client.query(
-          `INSERT INTO nodes (document_id, parent_id, level, label, content, sort_order, source_class)
-           VALUES ($1, $2, 'litera', $3, $4, $5, $6)`,
-          [documentId, currentArticleId, lastLiteraLabel, literaContent, currentSort++, sourceClass]
-        );
-        lastLiteraLabel = null;
-        continue;
-      }
-
-      if (classes.includes("S_LIT") || classes.includes("S_LIT_SHORT")) continue;
+      // Reset for the new section
+      currentLevel = level;
+      currentContent = "";
     }
 
-    const dedupKey = `${level}:${label}:${content}`;
-    if (seen.has(dedupKey)) continue;
-    seen.add(dedupKey);
+    // Accumulate text for the current main section
+    currentContent += " " + trimmedText;
+  }
 
-    const myPriority = LEVEL_PRIORITY[level];
-    while (parentStack.length > 0) {
-      const top = parentStack[parentStack.length - 1];
-      if (LEVEL_PRIORITY[top.level] < myPriority) break;
-      parentStack.pop();
-    }
-
-    const parentId = parentStack.length > 0 ? parentStack[parentStack.length - 1].id : null;
-
-    const result = await client.query(
-      `INSERT INTO nodes (document_id, parent_id, level, label, content, sort_order, source_class)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
-       RETURNING id`,
-      [documentId, parentId, level, label, content, currentSort++, sourceClass]
+  // Save the final accumulated section
+  if (currentLevel && currentContent.trim()) {
+    await client.query(
+      `INSERT INTO nodes (document_id, parent_id, level, label, content, sort_order, section_type, source_class)
+       VALUES ($1, NULL, $2, NULL, $3, $4, NULL, 'main_section')`,
+      [documentId, currentLevel, currentContent.trim(), currentSort++]
     );
-
-    const insertedId = result.rows[0].id;
-    if (level === "articol") currentArticleId = insertedId;
-    if (level === "anexa") currentAnexaId = insertedId;
-
-    if (["titlu", "carte", "capitol", "sectiune", "articol", "alineat", "litera", "subpunct"].includes(level)) {
-      parentStack.push({ id: insertedId, level });
-    }
   }
 
   logStep("parser", `✅ Parsed and saved nodes for document ${documentId}`);
   await browser.close();
   await client.end();
-}
-
-function extractLabel(text: string): string | null {
-  const match = text.match(
-    /^(Art\.?\s*\d+[^\s]*|Articolul\s+\d+[^\s]*|Capitolul\s+\w+|Titlul\s+\w+|CARTEA\s+\w+|Anexa\s+\w+|\(\d+\)|[a-z]\))/i
-  );
-  return match ? match[0] : null;
-}
-
-function extractContent(text: string, label: string | null): string {
-  return label ? text.replace(label, "").trim() : text.trim();
 }

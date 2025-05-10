@@ -5,7 +5,7 @@
   },
   "educatie": {
     "label": "Educație",
-    "keywords": ["educație", "universitar", "ministerul educației", "elev", "elevi", "profesor", "profesori", "catedra", "scoala", "liceu", "facultate", "învățământ", "curriculum", "examene", "bacalaureat", "grădiniță", "note", "evaluare"]
+    "keywords": ["educație", "educatiei", "universitar", "ministerul educației", "elev", "elevi", "profesor", "profesori", "catedra", "scoala", "liceu", "facultate", "învățământ", "curriculum", "examene", "bacalaureat", "grădiniță", "note", "evaluare", "cercetare", "cercetator", "cercetarii"]
   },
   "munca": {
     "label": "Muncă și protecția muncii",
@@ -33,14 +33,14 @@
   },
   "gdpr": {
     "label": "Protecția datelor personale",
-    "keywords": ["GDPR", "protecția datelor", "date cu caracter personal", "confidențialitate", "prelucrarea datelor", "consimțământ", "dreptul la ștergere", "dreptul de acces", "operator de date", "autoritate de supraveghere"]
+    "keywords": ["GDPR", "protecția datelor", "date cu caracter personal", "confidențialitate", "prelucrarea datelor", "consimțământ", "dreptul la ștergere", "dreptul de acces", "operator de date", "autoritate de supraveghere", "AUTORITATEA NAŢIONALĂ DE SUPRAVEGHERE A PRELUCRĂRII DATELOR CU CARACTER PERSONAL"]
   },
   "constitutional": {
     "label": "Drept constituțional",
-    "keywords": ["constituție", "revizuirea constituției", "drepturi fundamentale", "libertăți", "separația puterilor", "stat de drept", "curtea constituțională", "lege fundamentală", "cetățenie", "sistem politic"]
+    "keywords": ["constituție", "constitutionala", "constitutional", "revizuirea constituției", "drepturi fundamentale", "libertăți", "separația puterilor", "stat de drept", "curtea constituțională", "lege fundamentală", "cetățenie", "sistem politic"]
   },
   "comercial": {
     "label": "Drept comercial",
-    "keywords": ["comert", "industrie", "antreprenor", "economie", "firma", "banca", "credit", "investiție", "transporturi", "transport", "transporturilor", "societate comercială", "cont bancar", "contract comercial", "licență", "export", "import", "piață", "concurență", "insolvență", "asigurare", "asigurari"]
+    "keywords": ["comert", "industrie", "antreprenor", "economie", "firma", "banca", "credit", "investiție", "transporturi", "transport", "transporturilor", "societate comercială", "cont bancar", "contract comercial", "licență", "export", "import", "piață", "concurență", "insolvență", "asigurare", "asigurari", "energie", "energetic", "transport", "transportatori", "comunicatii", "telecomunicatii", "fiscal", "fiscala", "taxe", "impozite", "contribuții", "turism", "turistic", "turist", "agroturism", "consumator", "consumatori"]
   }
 }
