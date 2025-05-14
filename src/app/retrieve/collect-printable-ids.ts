@@ -38,7 +38,7 @@ if (process.stdin.isTTY) {
 
 // Set document ID range
 const START_ID = 2;
-const END_ID = 200000;
+const END_ID = 297064;
 
 // Define path to skipped IDs file
 const skippedPath = path.join(OUTPUT_DIR, "skipped-ids.json");

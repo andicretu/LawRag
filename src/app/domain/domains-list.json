@@ -1,7 +1,7 @@
 {
   "sanatate": {
     "label": "Sănătate publică",
-    "keywords": ["sanitar", "sănătate", "ministerul sănătății", "ansvsa", "medical", "medic", "pacient", "spital", "medicament", "medicamente", "farmacie", "tratament", "terapie", "clinică", "asistent medical", "boala", "boli", "bolnav", "vaccin", "vaccinare", "epidemie", "diagnostic", "casa de asigurari", "asigurari de sanatate", "asigurare de sanatate", "ambulanta", "ambulator", "cadru medical"]
+    "keywords": ["sanitar", "sănătate", "ministerul sănătății", "sanatatii", "ansvsa", "medical", "medic", "pacient", "spital", "medicament", "medicamente", "farmacie", "tratament", "terapie", "clinică", "asistent medical", "boala", "boli", "bolnav", "vaccin", "vaccinare", "epidemie", "diagnostic", "casa de asigurari", "asigurari de sanatate", "asigurare de sanatate", "ambulanta", "ambulator", "cadru medical"]
   },
   "educatie": {
     "label": "Educație",
