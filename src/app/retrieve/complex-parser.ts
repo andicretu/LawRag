@@ -28,12 +28,20 @@ const CONTENT_CLASS = new Set([
   "S_POR_BDY", "S_NTA", "S_NTA_BDY"
 ]);
 
-// Helper function to find the reverse mapping from level to class name
-function findClassNameByLevel(level: string): string | undefined {
-  for (const [key, value] of LEVEL_CLASS.entries()) {
-    if (value === level) return key;
+function getSectionLevel(className: string): string | null {
+  if (LEVEL_CLASS.has(className)) return LEVEL_CLASS.get(className)!;
+  if (CONTENT_CLASS.has(className)) {
+    switch (className) {
+      case "S_PAR": return "paragraf";
+      case "S_LIT_BDY": return "litera";
+      case "S_ANX_BDY": return "anexa";
+      case "S_PCT_BDY": return "punct";
+      case "S_NTA": return "nota";
+      case "S_NTA_BDY": return "nota";
+      default: return "content";
+    }
   }
-  return undefined;
+  return null;
 }
 
 // Main function to parse the printable page
@@ -62,25 +70,50 @@ export async function parsePrintablePage(documentId: number, printableCode: stri
 
     const classes = className.split(" ");
 
-    const matchedLevel = classes.find(cls => LEVEL_CLASS.has(cls));
+    const matchedLevel = classes.find(cls => LEVEL_CLASS.has(cls) || CONTENT_CLASS.has(cls));
     if (matchedLevel) {
+      const isContent = CONTENT_CLASS.has(matchedLevel);
+
+      if (isContent) {
+        // Content sections: always save with 'content' label
+        const parent = parentStack[parentStack.length - 1];
+        await client.query(
+          `INSERT INTO nodes (document_id, parent_id, level, label, content, sort_order, source_class)
+           VALUES ($1, $2, $3, 'content', $4, $5, $6)`,
+          [documentId, parent ? parent.id : null, matchedLevel, text, currentSort++, className]
+        );
+
+        logStep("parser", `✅ Saved Content Section: content under ${parent ? parent.level + ' - ' + parent.label : 'no parent'} (Source: ${className})`);
+        continue;
+      }
+
       const level = LEVEL_CLASS.get(matchedLevel)!;
+      
+      if (!level) continue;
 
       // Build the label
       let label = "";
-      for (let j = i + 1; j < spans.length; j++) {
-        const subClasses = spans[j].className.split(" ");
 
-        if (LABEL_CLASS.has(subClasses[0])) {
-          label = spans[j].text.trim();
-        } else if (NAME_CLASS.has(subClasses[0])) {
-          label += label ? ` - ${spans[j].text.trim()}` : "";
-          i = j; // Skip the name span
-          break;
+      // Check if this is a content section
+      if (CONTENT_CLASS.has(matchedLevel)) {
+        label = "litera";
+      } else {
+        // Build the label for structural sections
+        for (let j = i + 1; j < spans.length; j++) {
+          const subClasses = spans[j].className.split(" ");
+
+          if (LABEL_CLASS.has(subClasses[0])) {
+            label = spans[j].text.trim();
+          } else if (NAME_CLASS.has(subClasses[0])) {
+            label += label ? ` - ${spans[j].text.trim()}` : "";
+            i = j; // Skip the name span
+            break;
+          }
+
+          if (LEVEL_CLASS.has(subClasses[0])) break;
         }
-
-        if (LEVEL_CLASS.has(subClasses[0])) break;
       }
+
       const currentIndex = LEVEL_ORDER.indexOf(level);
       // Determine the correct parent based on hierarchy
       let parentId = null;
@@ -104,7 +137,9 @@ export async function parsePrintablePage(documentId: number, printableCode: stri
       // Adjust the parent stack
       while (parentStack.length > 0) {
         const lastParentLevel = parentStack[parentStack.length - 1].level;
-        if (LEVEL_ORDER.indexOf(lastParentLevel) >= currentIndex) {
+        const lastParentIndex = LEVEL_ORDER.indexOf(lastParentLevel);
+
+        if (lastParentIndex >= currentIndex) {
           parentStack.pop();
         } else {
           break;
