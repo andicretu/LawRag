@@ -1,4 +1,5 @@
-// cli-loader.ts
+// loader-console.ts
+
 import readline from "readline/promises";
 import path from "path";
 import { readFile, access } from "fs/promises";
@@ -10,6 +11,7 @@ import { embedChunks } from "./augment/embed-chunks";
 
 const OUTPUT_DIR = path.resolve(process.cwd(), "output");
 const PROGRESS_FILE = path.join(OUTPUT_DIR, "operations-progress.json");
+let stopParsing = false;
 
 async function exists(filePath: string) {
   try {
@@ -27,6 +29,36 @@ async function loadProgress() {
   }
   return {};
 }
+
+async function startParsing() {
+  const client = new Client({ connectionString: process.env.DATABASE_URL });
+  await client.connect();
+
+  const { rows } = await client.query('SELECT id, code FROM documents WHERE id <= 150000 ORDER BY id DESC;');
+
+  for (const row of rows) {
+    if (stopParsing) {
+      console.log("\n❌ Parsing stopped by user.");
+      break;
+    }
+
+    const { id, code } = row;
+    try {
+      await parsePrintablePage(id, code);
+      console.log(`✅ Parsed document: ID = ${id}, Code = ${code}`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error(`❌ Failed to parse document: ID = ${id}, Code = ${code}. Error: ${errorMessage}`);
+    }
+  }
+
+  await client.end();
+}
+
+process.on("SIGINT", () => {
+  console.log("\n🔴 Interrupt signal received. Stopping parsing...");
+  stopParsing = true;
+});
 
 async function displayStatus() {
   const progress = await loadProgress();
@@ -50,13 +82,10 @@ async function displayStatus() {
   console.log();
 }
 
-// loader-console.ts
-
 export function logStep(step: string, message: string) {
   const label = step.padEnd(10, " ");
   console.log(`[${label}] ${message}`);
 }
-
 
 async function startCLI() {
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
@@ -72,23 +101,18 @@ async function startCLI() {
     } else if (command === "embed") {
       await embedChunks();
     } else if (command === "parse") {
-      const documentId = Number(await rl.question("Enter documentId: "));
-      const printableCode = await rl.question("Enter printableCode: ");
-      if (!documentId || !printableCode) {
-        console.log("❌ Invalid input. Must provide both documentId and printableCode.");
-        continue;
-      }
-      await parsePrintablePage(documentId, printableCode);
-    }
-    else if (command === "exit") {
+      stopParsing = false; // Reset stop flag before parsing
+      await startParsing();
+    } else if (command === "status") {
+      await displayStatus();
+    } else if (command === "exit") {
       console.log("👋 Exiting CLI.");
+      rl.close();
       break;
     } else {
       console.log("❓ Unknown command.");
     }
   }
-
-  rl.close();
 }
 
 startCLI();

@@ -8,7 +8,13 @@ const LEVEL_CLASS = new Map([
   ["S_CRT", "carte"],
   ["S_CAP", "capitol"],
   ["S_ART", "articol"],
-  ["S_POR", "parte"]
+  ["S_POR", "parte"],
+  ["S_PAR", "paragraf"],
+  ["S_LIT_BDY", "litera"],
+  ["S_ALN_BDY", "alineat"],
+  ["S_NTA_BDY", "nota"],
+  ["S_ANX_BDY", "anexa"],
+  ["S_SMN_BDY", "semnatura"]
 ]);
 
 const LEVEL_ORDER = ["titlu", "carte", "capitol", "articol", "parte"];
@@ -25,16 +31,8 @@ const NAME_CLASS = new Set([
 
 const CONTENT_CLASS = new Set([
   "S_PAR", "S_LIT_BDY", "S_ANX_BDY", "S_PCT_BDY",
-  "S_POR_BDY", "S_NTA", "S_NTA_BDY"
+  "S_POR_BDY", "S_NTA", "S_NTA_BDY", "S_ALN_BDY", "S_SMN_BDY"
 ]);
-
-// Helper function to find the reverse mapping from level to class name
-function findClassNameByLevel(level: string): string | undefined {
-  for (const [key, value] of LEVEL_CLASS.entries()) {
-    if (value === level) return key;
-  }
-  return undefined;
-}
 
 // Main function to parse the printable page
 export async function parsePrintablePage(documentId: number, printableCode: string) {
@@ -81,7 +79,9 @@ export async function parsePrintablePage(documentId: number, printableCode: stri
 
         if (LEVEL_CLASS.has(subClasses[0])) break;
       }
+
       const currentIndex = LEVEL_ORDER.indexOf(level);
+
       // Determine the correct parent based on hierarchy
       let parentId = null;
       for (let p = parentStack.length - 1; p >= 0; p--) {
@@ -97,19 +97,9 @@ export async function parsePrintablePage(documentId: number, printableCode: stri
       // Save the section with correct parent
       const result = await client.query(
         `INSERT INTO nodes (document_id, parent_id, level, label, content, sort_order, source_class)
-         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
-        [documentId, parentId, level, label, "nc", currentSort++, matchedLevel]
+         VALUES ($1, $2, $3, $4, NULL, $5, $6) RETURNING id`,
+        [documentId, parentId, level, label, currentSort++, matchedLevel]
       );
-
-      // Adjust the parent stack
-      while (parentStack.length > 0) {
-        const lastParentLevel = parentStack[parentStack.length - 1].level;
-        if (LEVEL_ORDER.indexOf(lastParentLevel) >= currentIndex) {
-          parentStack.pop();
-        } else {
-          break;
-        }
-      }
 
       parentStack.push({ id: result.rows[0].id, level, label });
       logStep("parser", `✅ Saved Ranked Section: ${level} with label: ${label} (Source: ${matchedLevel})`);
@@ -118,14 +108,15 @@ export async function parsePrintablePage(documentId: number, printableCode: stri
     // Detect and save content sections under the correct parent
     if (parentStack.length > 0 && classes.some(cls => CONTENT_CLASS.has(cls))) {
       const parent = parentStack[parentStack.length - 1];
+      const contentLevel = LEVEL_CLASS.get(classes.find(cls => CONTENT_CLASS.has(cls))!) || "paragraf";
 
       await client.query(
         `INSERT INTO nodes (document_id, parent_id, level, label, content, sort_order, source_class)
          VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        [documentId, parent.id, parent.level, parent.label, text, currentSort++, className]
+        [documentId, parent.id, contentLevel, "content", text, currentSort++, className]
       );
 
-      logStep("parser", `✅ Saved Content Section under: ${parent.level} - ${parent.label} (Source: ${className})`);
+      logStep("parser", `✅ Saved Content Section: ${contentLevel} under ${parent.level} - ${parent.label} (Source: ${className})`);
     }
   }
 
