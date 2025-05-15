@@ -12,6 +12,7 @@ import { embedChunks } from "./augment/embed-chunks";
 const OUTPUT_DIR = path.resolve(process.cwd(), "output");
 const PROGRESS_FILE = path.join(OUTPUT_DIR, "operations-progress.json");
 let stopParsing = false;
+let stopCollecting = false
 
 async function exists(filePath: string) {
   try {
@@ -56,8 +57,9 @@ async function startParsing() {
 }
 
 process.on("SIGINT", () => {
-  console.log("\n🔴 Interrupt signal received. Stopping parsing...");
+  console.log("\n🔴 Interrupt signal received. Stopping...");
   stopParsing = true;
+  stopCollecting = !stopCollecting;
 });
 
 async function displayStatus() {
@@ -96,6 +98,7 @@ async function startCLI() {
 
     if (command === "collect") {
       await collectPrintableIds();
+      stopCollecting = false;
     } else if (command === "chunk") {
       await chunkLaws();
     } else if (command === "embed") {

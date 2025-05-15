@@ -60,66 +60,101 @@ export async function parsePrintablePage(documentId: number, printableCode: stri
 
     const classes = className.split(" ");
 
-    const matchedLevel = classes.find(cls => LEVEL_CLASS.has(cls));
-    if (matchedLevel) {
-      const level = LEVEL_CLASS.get(matchedLevel)!;
-
-      // Build the label
-      let label = "";
-      for (let j = i + 1; j < spans.length; j++) {
-        const subClasses = spans[j].className.split(" ");
-
-        if (LABEL_CLASS.has(subClasses[0])) {
-          label = spans[j].text.trim();
-        } else if (NAME_CLASS.has(subClasses[0])) {
-          label += label ? ` - ${spans[j].text.trim()}` : "";
-          i = j; // Skip the name span
-          break;
-        }
-
-        if (LEVEL_CLASS.has(subClasses[0])) break;
-      }
-
-      const currentIndex = LEVEL_ORDER.indexOf(level);
-
-      // Determine the correct parent based on hierarchy
-      let parentId = null;
-      for (let p = parentStack.length - 1; p >= 0; p--) {
-        const parentLevel = parentStack[p].level;
-        const parentIndex = LEVEL_ORDER.indexOf(parentLevel);
-
-        if (parentIndex >= 0 && parentIndex < currentIndex) {
-          parentId = parentStack[p].id;
-          break;
-        }
-      }
-
-      // Save the section with correct parent
-      const result = await client.query(
-        `INSERT INTO nodes (document_id, parent_id, level, label, content, sort_order, source_class)
-         VALUES ($1, $2, $3, $4, NULL, $5, $6) RETURNING id`,
-        [documentId, parentId, level, label, currentSort++, matchedLevel]
-      );
-
-      parentStack.push({ id: result.rows[0].id, level, label });
-      logStep("parser", `✅ Saved Ranked Section: ${level} with label: ${label} (Source: ${matchedLevel})`);
+    // Prioritize content sections first
+    if (classes.some(cls => CONTENT_CLASS.has(cls))) {
+      await saveContentSection(documentId, classes, text, parentStack, client, currentSort++);
+      continue; // Skip to next iteration to avoid treating it as structural
     }
 
-    // Detect and save content sections under the correct parent
-    if (parentStack.length > 0 && classes.some(cls => CONTENT_CLASS.has(cls))) {
-      const parent = parentStack[parentStack.length - 1];
-      const contentLevel = LEVEL_CLASS.get(classes.find(cls => CONTENT_CLASS.has(cls))!) || "paragraf";
-
-      await client.query(
-        `INSERT INTO nodes (document_id, parent_id, level, label, content, sort_order, source_class)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        [documentId, parent.id, contentLevel, "content", text, currentSort++, className]
-      );
-
-      logStep("parser", `✅ Saved Content Section: ${contentLevel} under ${parent.level} - ${parent.label} (Source: ${className})`);
+    // Only save as structural if it is not a content section
+    if (classes.some(cls => LEVEL_CLASS.has(cls))) {
+      await saveStructuralSection(documentId, classes, spans, i, parentStack, client, currentSort++);
     }
   }
 
   await browser.close();
   await client.end();
+}
+
+// Function to save structural sections (Capitol, Articol, etc.)
+async function saveStructuralSection(
+  documentId: number, 
+  classes: string[], 
+  spans: { className: string, text: string }[], 
+  index: number, 
+  parentStack: { id: number; level: string; label: string }[], 
+  client: Client, 
+  sortOrder: number
+) {
+  const matchedLevel = classes.find(cls => LEVEL_CLASS.has(cls));
+  if (!matchedLevel) return;
+
+  const level = LEVEL_CLASS.get(matchedLevel)!;
+  let label = spans[index].text.trim();
+
+  // Build the complete label
+  for (let j = index + 1; j < spans.length; j++) {
+    const subClasses = spans[j].className.split(" ");
+
+    if (LABEL_CLASS.has(subClasses[0])) {
+      label = spans[j].text.trim();
+    } else if (NAME_CLASS.has(subClasses[0])) {
+      label += label ? ` - ${spans[j].text.trim()}` : "";
+      index = j;
+      break;
+    }
+
+    if (LEVEL_CLASS.has(subClasses[0])) break;
+  }
+
+  const parentId = getParentId(level, parentStack);
+
+  const result = await client.query(
+    `INSERT INTO nodes (document_id, parent_id, level, label, content, sort_order, source_class)
+     VALUES ($1, $2, $3, $4, 'nc', $5, $6) RETURNING id`,
+    [documentId, parentId, level, label, sortOrder, matchedLevel]
+  );
+
+  parentStack.push({ id: result.rows[0].id, level, label });
+  logStep("parser", `✅ Saved Structural Section: ${level} with label: ${label} (Source: ${matchedLevel})`);
+}
+
+// Function to save content sections (paragraf, litera, etc.)
+async function saveContentSection(
+  documentId: number, 
+  classes: string[], 
+  text: string, 
+  parentStack: { id: number; level: string; label: string }[], 
+  client: Client, 
+  sortOrder: number
+) {
+  if (parentStack.length === 0) {
+    logStep("parser", `❌ Error: Content section with no parent. Skipping.`);
+    return;
+  }
+
+  const parent = parentStack[parentStack.length - 1];
+  const contentLevel = LEVEL_CLASS.get(classes.find(cls => CONTENT_CLASS.has(cls))!) || "paragraf";
+
+  await client.query(
+    `INSERT INTO nodes (document_id, parent_id, level, label, content, sort_order, source_class)
+     VALUES ($1, $2, $3, 'content', $4, $5, $6)`,
+    [documentId, parent.id, contentLevel, text.trim() || "nc", sortOrder, classes.join(" ")]
+  );
+
+  logStep("parser", `✅ Saved Content Section: ${contentLevel} under ${parent.level} - ${parent.label}`);
+}
+
+// Function to determine the correct parent
+function getParentId(
+  level: string, 
+  parentStack: { id: number; level: string; label: string }[]
+): number | null {
+  for (let p = parentStack.length - 1; p >= 0; p--) {
+    const parentLevel = parentStack[p].level;
+    if (LEVEL_ORDER.indexOf(parentLevel) < LEVEL_ORDER.indexOf(level)) {
+      return parentStack[p].id;
+    }
+  }
+  return null;
 }
