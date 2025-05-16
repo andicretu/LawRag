@@ -10,28 +10,27 @@ const LEVEL_CLASS = new Map([
   ["S_ART", "articol"],
   ["S_POR", "parte"],
   ["S_PAR", "paragraf"],
-  ["S_LIT_BDY", "litera"],
-  ["S_ALN_BDY", "alineat"],
-  ["S_NTA_BDY", "nota"],
-  ["S_ANX_BDY", "anexa"],
-  ["S_SMN_BDY", "semnatura"]
+  ["S_LIT", "litera"],
+  ["S_ALN", "alineat"],
+  ["S_NTA", "nota"],
+  ["S_ANX", "anexa"],
+  ["S_SMN", "semnatura"]
 ]);
 
-const LEVEL_ORDER = ["titlu", "carte", "capitol", "articol", "parte"];
+const LEVEL_ORDER = ["titlu", "carte", "capitol", "articol", "parte", "anexa"];
 
 const LABEL_CLASS = new Set([
   "S_CAP_TTL", "S_TTL_TTL", "S_CRT_TTL", "S_ART_TTL",
-  "S_POR_TTL"
+  "S_POR_TTL", "S_ANX_TTL", "S_NTA_TTL", "S_ALN_TTL", "S_BLC_TTL"
 ]);
 
 const NAME_CLASS = new Set([
   "S_CAP_DEN", "S_TTL_DEN", "S_CRT_DEN", "S_ART_DEN",
-  "S_POR_DEN"
+  "S_POR_DEN", "S_ANX_DEN", "S_NTA_DEN", "S_ALN_DEN"
 ]);
 
 const CONTENT_CLASS = new Set([
-  "S_PAR", "S_LIT_BDY", "S_ANX_BDY", "S_PCT_BDY",
-  "S_POR_BDY", "S_NTA", "S_NTA_BDY", "S_ALN_BDY", "S_SMN_BDY"
+  "S_PAR", "S_LIT_BDY", "S_ALN_BDY", "A_PAR", "S_SMN_PAR"
 ]);
 
 // Main function to parse the printable page
@@ -67,8 +66,14 @@ export async function parsePrintablePage(documentId: number, printableCode: stri
     }
 
     // Only save as structural if it is not a content section
-    if (classes.some(cls => LEVEL_CLASS.has(cls))) {
+    else if (classes.some(cls => LEVEL_CLASS.has(cls))) {
       await saveStructuralSection(documentId, classes, spans, i, parentStack, client, currentSort++);
+    }
+
+        // Fallback for unrecognized elements
+    else if (text.trim()) {
+      await saveUnrecognizedSection(documentId, text, parentStack, client, currentSort++);
+      logStep("parser", `⚠️ Saved Unrecognized Section as S_PAR: ${text}`);
     }
   }
 
@@ -104,7 +109,9 @@ async function saveStructuralSection(
       break;
     }
 
-    if (LEVEL_CLASS.has(subClasses[0])) break;
+    if (LEVEL_CLASS.has(subClasses[0]) || CONTENT_CLASS.has(subClasses[0])) {
+      break;
+    }
   }
 
   const parentId = getParentId(level, parentStack);
@@ -157,4 +164,24 @@ function getParentId(
     }
   }
   return null;
+}
+
+// Function to save unrecognized sections as S_PAR
+async function saveUnrecognizedSection(
+  documentId: number, 
+  text: string, 
+  parentStack: { id: number; level: string; label: string }[], 
+  client: Client, 
+  sortOrder: number
+) {
+  if (parentStack.length === 0) {
+    logStep("parser", `⚠️ No parent found for unrecognized section. Saving as top-level section.`);
+
+    await client.query(
+      `INSERT INTO nodes (document_id, parent_id, level, label, content, sort_order, source_class)
+       VALUES ($1, NULL, 'paragraf', 'content', $2, $3, 'S_PAR')`,
+      [documentId, text.trim(), sortOrder]
+    );
+    return;
+  }
 }
