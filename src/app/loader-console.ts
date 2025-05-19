@@ -39,7 +39,7 @@ async function startParsing() {
   const client = new Client({ connectionString: process.env.DATABASE_URL });
   await client.connect();
 
-  const { rows } = await client.query('SELECT id, code FROM documents WHERE id <= 150000 ORDER BY id DESC;');
+  const { rows } = await client.query('SELECT id, code FROM documents WHERE id <= 297063 ORDER BY id DESC;');
 
   for (const row of rows) {
     if (stopParsing) {

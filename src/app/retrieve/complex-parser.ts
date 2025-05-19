@@ -87,8 +87,8 @@ export async function parsePrintablePage(documentId: number, printableCode: stri
 
     // Fallback for unrecognized elements
     else if (text.trim() && !classes.some(cls => CONTENT_CLASS.has(cls) || LEVEL_CLASS.has(cls))) {
-      await saveUnrecognizedSection(documentId, text, parentStack, client, currentSort++);
-      logStep("parser", `⚠️ Saved Unrecognized Section as S_PAR: ${text}`);
+      await saveUnrecognizedSection(documentId, text, className, parentStack, client, currentSort++);
+      logStep("parser", `⚠️ Saved Unrecognized Section (${className}) as S_PAR: ${text}`);
     }
   }
 
@@ -182,22 +182,31 @@ function getParentId(
   return null;
 }
 
-// Function to save unrecognized sections as S_PAR
+// Function to save unrecognized sections as it is found
 async function saveUnrecognizedSection(
   documentId: number, 
   text: string, 
+  className: string, 
   parentStack: { id: number; level: string; label: string }[], 
   client: Client, 
   sortOrder: number
 ) {
   if (parentStack.length === 0) {
     logStep("parser", `⚠️ No parent found for unrecognized section. Saving as top-level section.`);
-
     await client.query(
       `INSERT INTO nodes (document_id, parent_id, level, label, content, sort_order, source_class)
-       VALUES ($1, NULL, 'paragraf', 'content', $2, $3, 'S_PAR')`,
-      [documentId, text.trim(), sortOrder]
+       VALUES ($1, NULL, 'paragraf', 'content', $2, $3, $4)`,
+      [documentId, text.trim(), sortOrder, className]
     );
     return;
   }
+
+  const parent = parentStack[parentStack.length - 1];
+  await client.query(
+    `INSERT INTO nodes (document_id, parent_id, level, label, content, sort_order, source_class)
+     VALUES ($1, $2, 'paragraf', 'content', $3, $4, $5)`,
+    [documentId, parent.id, text.trim(), sortOrder, className]
+  );
+
+  logStep("parser", `✅ Saved Unrecognized Section (${className}) under ${parent.level} - ${parent.label}`);
 }
