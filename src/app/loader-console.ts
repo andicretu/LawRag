@@ -8,11 +8,15 @@ import { collectPrintableIds } from "./retrieve/collect-printable-ids";
 import { parsePrintablePage } from "./retrieve/complex-parser";
 import { chunkLaws } from "./retrieve/chunk-laws";
 import { embedChunks } from "./augment/embed-chunks";
+import { fetchFromApi, SearchCriteria } from './retrieve/api-fetch-documents';
+
 
 const OUTPUT_DIR = path.resolve(process.cwd(), "output");
 const PROGRESS_FILE = path.join(OUTPUT_DIR, "operations-progress.json");
 let stopParsing = false;
-let stopCollecting = false
+let stopCollecting = false;
+let stopFetching = false;
+
 
 async function exists(filePath: string) {
   try {
@@ -60,6 +64,7 @@ process.on("SIGINT", () => {
   console.log("\n🔴 Interrupt signal received. Stopping...");
   stopParsing = true;
   stopCollecting = !stopCollecting;
+  stopFetching = !stopFetching;
 });
 
 async function displayStatus() {
@@ -108,6 +113,20 @@ async function startCLI() {
       await startParsing();
     } else if (command === "status") {
       await displayStatus();
+    }
+      else if (command === 'fetch') {
+      // Define your search criteria. Adjust fields as per the WSDL schema.
+      const criteria: SearchCriteria = {
+      };
+      try {
+        console.log('🔄 Fetching documents...');
+        await fetchFromApi(criteria);
+        console.log('✅ Fetch complete');
+      } catch (err) {
+        console.error('❌ Error during fetch:', err instanceof Error ? err.message : err);
+      }
+
+      stopFetching = false;
     } else if (command === "exit") {
       console.log("👋 Exiting CLI.");
       rl.close();

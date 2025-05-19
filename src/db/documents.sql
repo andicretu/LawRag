@@ -40,3 +40,8 @@ CREATE TABLE documents (
     domain TEXT,            -- New: assigned field, e.g., 'sanatate'
     keywords TEXT[]         -- New: optional extracted keywords
 );
+
+ALTER TABLE documents 
+ADD COLUMN text TEXT,
+ADD COLUMN fetched_api BOOLEAN DEFAULT FALSE;
+

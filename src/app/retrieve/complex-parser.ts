@@ -10,7 +10,6 @@ const LEVEL_CLASS = new Map([
   ["S_ART", "articol"],
   ["S_POR", "parte"],
   ["S_PAR", "paragraf"],
-  ["S_LIT", "litera"],
   ["S_ALN", "alineat"],
   ["S_NTA", "nota"],
   ["S_ANX", "anexa"],
@@ -53,6 +52,22 @@ export async function parsePrintablePage(documentId: number, printableCode: stri
   let currentSort = 0;
   const parentStack: { id: number; level: string; label: string }[] = [];
 
+  // Create a root node for the document (Title)
+  const documentMetadata = await client.query(`SELECT title FROM documents WHERE id = $1`, [documentId]);
+  const documentTitle = documentMetadata.rows[0]?.title || "Untitled Document";
+
+  const rootResult =await client.query(
+    `INSERT INTO nodes (document_id, parent_id, level, label, content, sort_order, source_class)
+     VALUES ($1, NULL, 'metadata', $2, 'nc', $3, 'document_title') RETURNING id`,
+    [documentId, documentTitle, currentSort++]
+  );
+
+  const rootId = rootResult.rows[0].id;
+  parentStack.length = 0; // Ensure the stack is cleared
+  parentStack.push({ id: rootId, level: "metadata", label: documentTitle });
+  logStep("parser", `✅ Root Node set as parent. Stack reset.`);
+  logStep("parser", `✅ Created Root Node (Metadata) for Document: ${documentTitle} (ID: ${rootId})`);
+
   for (let i = 0; i < spans.length; i++) {
     const { className, text } = spans[i];
     if (!text.trim()) continue;
@@ -70,8 +85,8 @@ export async function parsePrintablePage(documentId: number, printableCode: stri
       await saveStructuralSection(documentId, classes, spans, i, parentStack, client, currentSort++);
     }
 
-        // Fallback for unrecognized elements
-    else if (text.trim()) {
+    // Fallback for unrecognized elements
+    else if (text.trim() && !classes.some(cls => CONTENT_CLASS.has(cls) || LEVEL_CLASS.has(cls))) {
       await saveUnrecognizedSection(documentId, text, parentStack, client, currentSort++);
       logStep("parser", `⚠️ Saved Unrecognized Section as S_PAR: ${text}`);
     }
@@ -80,6 +95,7 @@ export async function parsePrintablePage(documentId: number, printableCode: stri
   await browser.close();
   await client.end();
 }
+
 
 // Function to save structural sections (Capitol, Articol, etc.)
 async function saveStructuralSection(
