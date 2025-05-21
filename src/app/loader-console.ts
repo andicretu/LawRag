@@ -13,6 +13,7 @@ import { fetchFromApi, SearchCriteria } from './retrieve/api-fetch-documents';
 
 const OUTPUT_DIR = path.resolve(process.cwd(), "output");
 const PROGRESS_FILE = path.join(OUTPUT_DIR, "operations-progress.json");
+const LAST_DOCUMENT = 284503;
 let stopParsing = false;
 let stopCollecting = false;
 let stopFetching = false;
@@ -39,24 +40,52 @@ async function startParsing() {
   const client = new Client({ connectionString: process.env.DATABASE_URL });
   await client.connect();
 
-  const { rows } = await client.query('SELECT id, code FROM documents WHERE id <= 297063 ORDER BY id DESC;');
+  // 1) Find the last parsed document_id in nodes
+  const { rows: parsedRows } = await client.query< { last_parsed: number | null } >(`
+    SELECT MIN(document_id) AS last_parsed
+      FROM nodes
+  `);
+  const lastParsed = parsedRows[0].last_parsed;
+  // 2) If nothing parsed yet, default to 284503
+  const startAt = lastParsed ?? LAST_DOCUMENT;
 
-  for (const row of rows) {
+  // Reset parsed column for documents from startAt downward (new run), and reset the "parsed" column
+  
+  if (startAt === LAST_DOCUMENT) {
+    await client.query(
+      `UPDATE documents SET parsed = NULL WHERE id <= $1`,
+      [startAt]
+    );
+    console.log(`♻️ Reset 'parsed' column to NULL for documents with ID <= ${startAt}`);
+  }
+
+  console.log(`🔄 Resuming parse at ID = ${startAt}`);
+
+  // 3) Grab every remaining document ≤ startAt, in descending order
+  const { rows } = await client.query<{ id: number; code: string }>(
+    `
+    SELECT id, code
+    FROM documents
+    WHERE id <= $1
+    ORDER BY id DESC
+    `,
+    [startAt]
+  );
+
+  for (const { id, code } of rows) {
     if (stopParsing) {
       console.log("\n❌ Parsing stopped by user.");
       break;
     }
-
-    const { id, code } = row;
     try {
       await parsePrintablePage(id, code);
-      console.log(`✅ Parsed document: ID = ${id}, Code = ${code}`);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error(`❌ Failed to parse document: ID = ${id}, Code = ${code}. Error: ${errorMessage}`);
-    }
+      await client.query(`UPDATE documents SET parsed = true WHERE id = $1`, [id]);
+      console.log(`✅ Parsed document: ID = ${id}`);
+    } catch (err) {
+      await client.query(`UPDATE documents SET parsed = false WHERE id = $1`, [id]);
+      console.error(`❌ Failed to parse ID = ${id}. Marked as parsed = false.`, err);
+    }    
   }
-
   await client.end();
 }
 
