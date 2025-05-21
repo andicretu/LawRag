@@ -22,7 +22,7 @@ const HEADER_CLASS = new Set([
 
 const CONTAINER_CLASS = new Set([
   "S_TTL_BDY", "S_CRT_BDY", "S_CAP_BDY", "S_ART_BDY", "S_POR_BDY",
-  "S_ANX_BDY", "S_SMN_BDY", "S_NTA_BDY", "S_NTA_SHORT", "S_NTA", "S_PCT_BDY", "S_PCT_SHORT", "S_PCT_TTL", "S_ALN_BDY", "S_LIT_SHORT", "S_LIT_BDY", "S_LIT_TTL", "S_LIN_BDY", "S_LIN_TTL", "S_LIN_SHORT","A_ELEMENT_CENTER", "S_SMN_PAR", "S_PUB_TTL", "S_PUB_BDY", "S_BLC_BDY", "S_CIT"
+  "S_ANX_BDY", "S_SMN_BDY", "S_NTA_BDY", "S_NTA_SHORT", "S_NTA", "S_PCT", "S_PCT_SHORT", "S_PCT_TTL", "S_ALN_BDY", "S_LIT_SHORT", "S_LIT_BDY", "S_LIT_TTL", "S_LIN_BDY", "S_LIN_TTL", "S_LIN_SHORT","A_ELEMENT_CENTER", "S_SMN_PAR", "S_PUB_TTL", "S_PUB_BDY", "S_BLC_BDY", "S_CIT"
 ]);
 
 
@@ -37,7 +37,7 @@ const NAME_CLASS = new Set([
 ]);
 
 const CONTENT_CLASS = new Set([
-  "S_PAR", "S_PCT", "S_LIT", "S_ALN", "A_PAR", "S_SMN", "S_LIN", "S_BLC", "S_NTA_PAR"
+  "S_PAR", "S_PCT_BDY", "S_LIT", "S_ALN", "A_PAR", "S_SMN", "S_LIN", "S_BLC", "S_NTA_PAR"
 ]);
 
 const REFERENCE_CLASS = new Set([
@@ -177,7 +177,7 @@ async function saveReferenceSection(
   await client.query(
     `INSERT INTO nodes (document_id, parent_id, level, label, content, sort_order, source_class)
      VALUES ($1, $2, $3, 'reference', $4, $5, $6)`,
-    [documentId, parent.id, contentLevel, no || "nc", sortOrder, classes.join(" ")]
+    [documentId, parent.id, contentLevel, normalizedUrl || "nc", sortOrder, classes.join(" ")]
   );
 }
 
@@ -244,8 +244,6 @@ async function saveContentSection(
      VALUES ($1, $2, $3, 'content', $4, $5, $6)`,
     [documentId, parent.id, contentLevel, text.trim() || "nc", sortOrder, classes.join(" ")]
   );
-
-  //logStep("parser", `✅ Saved Content Section: ${contentLevel} under ${parent.level} - ${parent.label}`);
 }
 
 // Function to determine the correct parent
