@@ -1,6 +1,6 @@
 import puppeteer from "puppeteer";
 import { Client } from "pg";
-import { logStep } from "../loader-console";
+//import { logStep } from "../loader-console";
 
 // Define Class Categories
 const LEVEL_CLASS = new Map([
@@ -22,7 +22,7 @@ const HEADER_CLASS = new Set([
 
 const CONTAINER_CLASS = new Set([
   "S_TTL_BDY", "S_CRT_BDY", "S_CAP_BDY", "S_ART_BDY", "S_POR_BDY",
-  "S_ANX_BDY", "S_SMN_BDY", "S_NTA_BDY", "S_NTA_SHORT", "S_NTA", "S_PCT", "S_PCT_SHORT", "S_PCT_TTL", "S_ALN_BDY", "S_LIT_SHORT", "S_LIT_BDY", "S_LIT_TTL", "S_LIN_BDY", "S_LIN_TTL", "S_LIN_SHORT","A_ELEMENT_CENTER", "S_SMN_PAR", "S_PUB_TTL", "S_PUB_BDY", "S_BLC_BDY", "S_CIT"
+  "S_ANX_BDY", "S_SMN_BDY", "S_NTA_BDY", "S_NTA_SHORT", "S_NTA", "S_PCT", "S_PCT_SHORT", "S_PCT_TTL", "S_ALN_BDY", "S_LIT_SHORT", "S_LIT_BDY", "S_LIT_TTL", "S_LIN_BDY", "S_LIN_TTL", "S_LIN_SHORT","A_ELEMENT_CENTER", "S_SMN_PAR", "S_PUB_TTL", "S_PUB_BDY", "S_BLC_BDY", "S_CIT", "S_SEC_TTL", "S_SEC_DEN", "A_ELEMENT_LEFT"
 ]);
 
 
@@ -286,5 +286,5 @@ async function saveUnrecognizedSection(
     [documentId, parent.id, text.trim(), sortOrder, className]
   );
 
-  logStep("parser", `✅ Saved Unrecognized Section (${className}) under ${parent.level} - ${parent.label}`);
+  //logStep("parser", `✅ Saved Unrecognized Section (${className}) under ${parent.level} - ${parent.label}`);
 }

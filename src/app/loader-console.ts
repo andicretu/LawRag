@@ -1,8 +1,10 @@
 // loader-console.ts
 
+import { config } from "dotenv";
 import readline from "readline/promises";
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 import path from "path";
-import { readFile, access } from "fs/promises";
 import { Client } from "pg";
 import { collectPrintableIds } from "./retrieve/collect-printable-ids";
 import { parsePrintablePage } from "./retrieve/complex-parser";
@@ -11,30 +13,14 @@ import { embedChunks } from "./augment/embed-chunks";
 import { fetchFromApi, SearchCriteria } from './retrieve/api-fetch-documents';
 
 
-const OUTPUT_DIR = path.resolve(process.cwd(), "output");
-const PROGRESS_FILE = path.join(OUTPUT_DIR, "operations-progress.json");
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+config({ path: path.resolve(__dirname, '../../.env') });
+// sanity check
 const LAST_DOCUMENT = 284503;
 let stopParsing = false;
 let stopCollecting = false;
 let stopFetching = false;
-
-
-async function exists(filePath: string) {
-  try {
-    await access(filePath);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function loadProgress() {
-  if (await exists(PROGRESS_FILE)) {
-    const raw = await readFile(PROGRESS_FILE, "utf-8");
-    return JSON.parse(raw);
-  }
-  return {};
-}
 
 async function startParsing() {
   const client = new Client({ connectionString: process.env.DATABASE_URL });
@@ -97,10 +83,6 @@ process.on("SIGINT", () => {
 });
 
 async function displayStatus() {
-  const progress = await loadProgress();
-  const scraper = progress.scraper || {};
-  const chunker = progress.chunker || {};
-  const embedder = progress.embedder || {};
 
   const client = new Client({ connectionString: process.env.DATABASE_URL });
   await client.connect();
@@ -112,10 +94,7 @@ async function displayStatus() {
 
   console.log("\n Current Document Load Status:");
   console.log(`🔍 Collector: Start ID = ${start_id || "-"}, Last ID = ${end_id || "-"}, Count = ${total_count || 0}`);
-  console.log(`📥 Scraper: Scraped IDs = ${scraper.totalScraped || 0}`);
-  console.log(`🧩 Chunker: Last Chunked ID = ${chunker.lastChunkedId || "-"}`);
-  console.log(`🧠 Embedder: Embedded Count = ${embedder.embeddedCount || 0}`);
-  console.log();
+
 }
 
 export function logStep(step: string, message: string) {
