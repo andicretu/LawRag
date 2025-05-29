@@ -21,12 +21,14 @@ const LAST_DOCUMENT = 284503;
 let stopParsing = false;
 let stopCollecting = false;
 let stopFetching = false;
+let stopChunking = false;
+
 
 async function startParsing() {
   const client = new Client({ connectionString: process.env.DATABASE_URL });
   await client.connect();
 
-  // 1) Find the last parsed document_id in nodes
+  // 1) Find the last successfully parsed document_id in nodes
   const { rows: parsedRows } = await client.query< { last_parsed: number | null } >(`
     SELECT MIN(document_id) AS last_parsed
       FROM nodes
@@ -80,6 +82,7 @@ process.on("SIGINT", () => {
   stopParsing = true;
   stopCollecting = !stopCollecting;
   stopFetching = !stopFetching;
+  stopChunking = !stopChunking;
 });
 
 async function displayStatus() {
@@ -113,34 +116,37 @@ async function startCLI() {
       await collectPrintableIds();
       stopCollecting = false;
     } else if (command === "chunk") {
-      await chunkLaws();
+        stopChunking = false;
+        try {
+          await chunkLaws(() => stopChunking);
+        } catch (err) {
+          console.error('❌ Error during chunking:', err instanceof Error ? err.message : err);
+        } 
     } else if (command === "embed") {
-      await embedChunks();
+        await embedChunks();
     } else if (command === "parse") {
-      stopParsing = false; // Reset stop flag before parsing
-      await startParsing();
+        stopParsing = false; // Reset stop flag before parsing
+        await startParsing();
     } else if (command === "status") {
-      await displayStatus();
-    }
-      else if (command === 'fetch') {
+        await displayStatus();
+    } else if (command === 'fetch') {
       // Define your search criteria. Adjust fields as per the WSDL schema.
-      const criteria: SearchCriteria = {
+        const criteria: SearchCriteria = {
       };
-      try {
+      try {  
         console.log('🔄 Fetching documents...');
         await fetchFromApi(criteria);
         console.log('✅ Fetch complete');
       } catch (err) {
         console.error('❌ Error during fetch:', err instanceof Error ? err.message : err);
       }
-
       stopFetching = false;
     } else if (command === "exit") {
-      console.log("👋 Exiting CLI.");
-      rl.close();
-      break;
+        console.log("👋 Exiting CLI.");
+        rl.close();
+        break;
     } else {
-      console.log("❓ Unknown command.");
+        console.log("❓ Unknown command.");
     }
   }
 }
