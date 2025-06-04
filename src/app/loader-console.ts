@@ -9,7 +9,7 @@ import { Client } from "pg";
 import { collectPrintableIds } from "./retrieve/collect-printable-ids";
 import { parsePrintablePage } from "./retrieve/complex-parser";
 import { chunkLaws } from "./retrieve/chunk-laws";
-import { embedChunks } from "./augment/embed-chunks";
+import { embedChunksDb } from "./augment/embed-chunks-db";
 import { fetchFromApi, SearchCriteria } from './retrieve/api-fetch-documents';
 
 
@@ -123,7 +123,7 @@ async function startCLI() {
           console.error('❌ Error during chunking:', err instanceof Error ? err.message : err);
         } 
     } else if (command === "embed") {
-        await embedChunks();
+        await embedChunksDb();
     } else if (command === "parse") {
         stopParsing = false; // Reset stop flag before parsing
         await startParsing();

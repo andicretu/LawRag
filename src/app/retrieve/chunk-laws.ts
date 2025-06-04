@@ -283,7 +283,7 @@ function buildChunks(
   // 5) Finally, if any nodes remain, flush them (with overlap)
   flushRemaining();
 
- // ─── POST-PROCESS: ADD OVERLAP_CHARS FROM PREVIOUS CHUNK ───────────────────
+ //  POST-PROCESS: ADD OVERLAP_CHARS FROM PREVIOUS CHUNK
   for (let i = 1; i < chunks.length; i++) {
     // Only overlap if it’s the same document_id
     if (chunks[i].doc_id === chunks[i - 1].doc_id) {
@@ -385,7 +385,7 @@ const { rows: countRows } = await client.query<{ cnt: string }>(
 
     const content = nodes.filter(n => n.level !== 'metadata' && n.label !== 'header');
     const chunks = buildChunks(documentId, content, MAX_CHARS, MIN_CHARS);
-    console.log("  → Built ${chunks.length} chunks.");
+    console.log(`  → Built ${chunks.length} chunks.`);
 
     await client.query('BEGIN');
     try {
