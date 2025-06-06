@@ -1,27 +1,28 @@
-// search-chunks.ts (modular version)
+// search-chunks-db.ts
 import path from "path";
-import { readFile, access, mkdir, writeFile } from "fs/promises";
-import { EmbeddedChunk } from "../generate/rerank-chunks";
-import rerankChunks from "../generate/rerank-chunks";
+import dotenv from "dotenv";
+import { Client } from "pg";
+import fetch from "node-fetch";
+import { mkdir, writeFile } from "fs/promises";
+import type { EmbeddedChunk } from "../../types/EmbeddedChunk";
 
-const OUTPUT_DIR = path.resolve(process.cwd(), "output");
-const EMBEDDINGS_FILE = path.join(OUTPUT_DIR, "embedded-chunks.json");
-const RELEVANT_DIR = path.join(OUTPUT_DIR, "relevant-chunks");
+
+dotenv.config({ path: path.resolve(process.cwd(), "../../.env") });
+
+const RELEVANT_DIR = path.resolve("output", "relevant-chunks");
 const SELECTED_CONTEXT_FILE = path.join(RELEVANT_DIR, "selected-context.json");
 
-
-async function exists(filePath: string) {
-  try {
-    await access(filePath);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function loadChunks(): Promise<EmbeddedChunk[]> {
-  const raw = await readFile(EMBEDDINGS_FILE, "utf-8");
-  return JSON.parse(raw);
+interface OpenAIEmbeddingResponse {
+  data: Array<{
+    embedding: number[];
+    index: number;
+    object: string;
+  }>;
+  model: string;
+  usage?: {
+    prompt_tokens: number;
+    total_tokens: number;
+  };
 }
 
 function cosineSimilarity(a: number[], b: number[]): number {
@@ -41,10 +42,10 @@ async function fetchEmbedding(text: string): Promise<number[]> {
       "Content-Type": "application/json",
       Authorization: `Bearer ${OPENAI_API_KEY}`,
     },
-    body: JSON.stringify({ input: text, model: MODEL })
+    body: JSON.stringify({ input: text, model: MODEL }),
   });
 
-  const json = await response.json();
+  const json = await response.json() as OpenAIEmbeddingResponse;
   if (!response.ok || !json.data || !json.data[0]) {
     throw new Error("Failed to get embedding for query");
   }
@@ -53,67 +54,62 @@ async function fetchEmbedding(text: string): Promise<number[]> {
 }
 
 export async function searchChunks(question: string): Promise<EmbeddedChunk[]> {
-  if (!(await exists(EMBEDDINGS_FILE))) {
-    throw new Error("❌ No embedded chunks found. Run embed-chunks.ts first.");
-  }
+  const client = new Client({ connectionString: process.env.DATABASE_URL });
+  await client.connect();
 
-  const chunks = await loadChunks();
   const questionEmbedding = await fetchEmbedding(question);
 
-  const scored = chunks.map((chunk) => ({
+  const { rows } = await client.query<{
+    chunk_id: number;
+    chunk_text: string;
+    embedding: string;
+    source_id: string;
+    chunk_index: number;
+  }>(`
+    SELECT chunk_id, chunk_text, embedding::text, document_id, sequence_idx
+    FROM law_chunks
+    WHERE embedding IS NOT NULL
+  `);
+
+  await client.end();
+
+  const chunks: EmbeddedChunk[] = rows.map(row => ({
+    chunkId: row.chunk_id,
+    text: row.chunk_text,
+    embedding: JSON.parse(row.embedding),
+    sourceId: row.source_id ?? "unknown",
+    chunkIndex: row.chunk_index ?? 0,
+  }));
+
+  const scored = chunks.map(chunk => ({
     chunk,
     score: cosineSimilarity(chunk.embedding, questionEmbedding),
   })).sort((a, b) => b.score - a.score);
-  
-  const topScored = scored.slice(0, 5);
-  
-  // ✅ Display scored chunks before reranking
-  //console.log("\n📊 Top scored chunks by cosine similarity:");
 
-  topScored.forEach(({ chunk, score }, index) => {
-    console.log(`(${index + 1}) [Score: ${score.toFixed(4)}] ${chunk.sourceId}-${chunk.chunkIndex}\n${chunk.text}\n----------------------------------------`);
-  });
-  
-  // 🔍 Rerank top chunks using LLM
-  const relevantChunks = await rerankChunks(question, topScored.map((s) => s.chunk));
-  
+  const relevantChunks = scored.slice(0, 5).map(s => s.chunk);
 
-  console.log("\n📚 Relevant chunks:");
+  console.log("\n📚 Top chunks (no reranking):");
   for (const chunk of relevantChunks) {
     console.log(`→ [${chunk.sourceId}-${chunk.chunkIndex}]\n${chunk.text}\n----------------------------------------`);
   }
 
-  if (relevantChunks.length === 0) {
-    console.log("⚠️ No relevant legal texts found.");
-  }
-
   await mkdir(RELEVANT_DIR, { recursive: true });
-  await writeFile(SELECTED_CONTEXT_FILE, JSON.stringify({
-    question,
-    relevantChunks
-  }, null, 2));
+  await writeFile(SELECTED_CONTEXT_FILE, JSON.stringify({ question, relevantChunks }, null, 2));
+  console.log("📁 Saved to:", SELECTED_CONTEXT_FILE);
 
-  console.log("relevant chunks::::::", relevantChunks.length);
   return relevantChunks;
 }
 
-// CLI entry point for manual testing
-/*if (process.argv[1].endsWith("search-chunks.ts")) {
+// CLI entry
+if (process.argv[1].endsWith("search-chunks-db.ts")) {
+  const readline = await import("readline");
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-  rl.question("❓ Enter your legal question: ").then(async (question) => {
+  rl.question("❓ Enter your legal question: ", async (question) => {
     rl.close();
     try {
-      const results = await searchChunks(question);
-      console.log("\n📚 Relevant chunks:");
-      for (const chunk of results) {
-        console.log(`→ [${chunk.sourceId}-${chunk.chunkIndex}]\n${chunk.text}\n----------------------------------------`);
-      }
-      if (results.length === 0) {
-        console.log("⚠️ No relevant legal texts found.");
-      }
+      await searchChunks(question);
     } catch (err) {
       console.error("❌ Error:", err);
     }
   });
-}*/
-export type { EmbeddedChunk };
+}
