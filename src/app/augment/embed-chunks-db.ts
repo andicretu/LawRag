@@ -115,7 +115,7 @@ export async function embedChunksDb(batchSize = 50): Promise<number> {
         console.log(`✅ Embedded chunk_id=${chunkIds[i]} (${totalUpdated} total)`);
       }
       await client.query("COMMIT");
-      await sleep(1700);
+      await sleep(2000);
     } catch (err) {
       console.error("❌ DB update failed. Rolling back:", err);
       await client.query("ROLLBACK");

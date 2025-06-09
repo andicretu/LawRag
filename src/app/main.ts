@@ -15,11 +15,22 @@ async function main() {
 
   console.log("🚀 Starting legal assistant workflow...");
 
-  const relevantChunks = await searchChunks(question);
+  let relevantChunks;
+  try {
+    relevantChunks = await searchChunks(question);
+    console.log("✅ Retrieved relevant chunks:", relevantChunks.length);
+  } catch (err) {
+    console.error("❌ Failed during searchChunks:", err);
+    process.exit(1);
+  }
 
-  const finalAnswer = await answerFromContext(question, relevantChunks);
-
-  console.log("\n✅ Final Answer:\n", finalAnswer);
+  try {
+    const finalAnswer = await answerFromContext(question, relevantChunks);
+    console.log("\n✅ Final Answer:\n", finalAnswer);
+  } catch (err) {
+    console.error("❌ Failed during answerFromContext:", err);
+    process.exit(1);
+  }
 }
 
 main();

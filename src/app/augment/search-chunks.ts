@@ -25,25 +25,22 @@ interface OpenAIEmbeddingResponse {
   };
 }
 
-function cosineSimilarity(a: number[], b: number[]): number {
-  const dot = a.reduce((sum, val, i) => sum + val * b[i], 0);
-  const magA = Math.sqrt(a.reduce((sum, val) => sum + val * val, 0));
-  const magB = Math.sqrt(b.reduce((sum, val) => sum + val * val, 0));
-  return dot / (magA * magB);
-}
-
 async function fetchEmbedding(text: string): Promise<number[]> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000); // 15s timeout
   const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
   const MODEL = "text-embedding-3-small";
 
   const response = await fetch("https://api.openai.com/v1/embeddings", {
     method: "POST",
+    signal: controller.signal,
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${OPENAI_API_KEY}`,
     },
     body: JSON.stringify({ input: text, model: MODEL }),
-  });
+    }
+  ).finally(() => clearTimeout(timeout));
 
   const json = await response.json() as OpenAIEmbeddingResponse;
   if (!response.ok || !json.data || !json.data[0]) {
@@ -57,45 +54,56 @@ export async function searchChunks(question: string): Promise<EmbeddedChunk[]> {
   const client = new Client({ connectionString: process.env.DATABASE_URL });
   await client.connect();
 
-  const questionEmbedding = await fetchEmbedding(question);
+  let questionEmbedding;
+  try {
+    console.time("Fetch embeddings");
+    questionEmbedding = await fetchEmbedding(question);
+    console.timeEnd("Fetch embeddings");
+  } catch (err) {
+    console.error("Error while fetching embedding", err);
+    throw err;
+  }
 
+  const vecLiteral = `[${questionEmbedding.join(",")}]`;
+
+  await client.query(`SET ivfflat.probes = 5;`);
+
+  console.time("DB query");
   const { rows } = await client.query<{
     chunk_id: number;
     chunk_text: string;
-    embedding: string;
-    source_id: string;
-    chunk_index: number;
+    document_id: string;
+    sequence_idx: number;
   }>(`
-    SELECT chunk_id, chunk_text, embedding::text, document_id, sequence_idx
+    SELECT chunk_id, 
+           chunk_text, 
+           document_id, 
+           sequence_idx
     FROM law_chunks
     WHERE embedding IS NOT NULL
-  `);
+  ORDER BY embedding <=> $1
+    LIMIT 5
+  `
+  , [vecLiteral]);
+  console.timeEnd("DB query");
 
   await client.end();
 
-  const chunks: EmbeddedChunk[] = rows.map(row => ({
+  const relevantChunks: EmbeddedChunk[] = rows.map(row => ({
     chunkId: row.chunk_id,
     text: row.chunk_text,
-    embedding: JSON.parse(row.embedding),
-    sourceId: row.source_id ?? "unknown",
-    chunkIndex: row.chunk_index ?? 0,
+    sourceId: row.document_id ?? "unknown",
+    chunkIndex: row.sequence_idx ?? 0,
   }));
 
-  const scored = chunks.map(chunk => ({
-    chunk,
-    score: cosineSimilarity(chunk.embedding, questionEmbedding),
-  })).sort((a, b) => b.score - a.score);
-
-  const relevantChunks = scored.slice(0, 5).map(s => s.chunk);
-
-  console.log("\n📚 Top chunks (no reranking):");
-  for (const chunk of relevantChunks) {
-    console.log(`→ [${chunk.sourceId}-${chunk.chunkIndex}]\n${chunk.text}\n----------------------------------------`);
-  }
-
+    // 5) Persist to file
   await mkdir(RELEVANT_DIR, { recursive: true });
-  await writeFile(SELECTED_CONTEXT_FILE, JSON.stringify({ question, relevantChunks }, null, 2));
-  console.log("📁 Saved to:", SELECTED_CONTEXT_FILE);
+  await writeFile(
+    SELECTED_CONTEXT_FILE,
+    JSON.stringify({ question, relevantChunks }, null, 2),
+    "utf-8"
+  );
+  console.log("📁 Saved relevant chunks to:", SELECTED_CONTEXT_FILE);
 
   return relevantChunks;
 }

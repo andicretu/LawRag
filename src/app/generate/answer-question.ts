@@ -6,7 +6,7 @@ import type { EmbeddedChunk } from "../../types/EmbeddedChunk";
 
 dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
-const MODEL = "deepseek-chat"; // Replace with actual DeepSeek model if needed
+const MODEL = "deepseek-chat"; // Replace with needed model
 
 export async function answerFromContext(question: string, relevantChunks: EmbeddedChunk[]): Promise<string> {
   const contextText = relevantChunks.map((c) => c.text).join("\n\n").slice(0, 6000); // Limit to prevent context overflow
