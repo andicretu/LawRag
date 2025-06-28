@@ -37,6 +37,7 @@ export default function LegalQuestionPage() {
       setAnswer(data.answer)
       setLinks(data.sources || [])
     } catch (error) {
+      console.error("Error fetching answer:", error)
       setStatus("Connection error occurred")
     } finally {
       setIsLoading(false)

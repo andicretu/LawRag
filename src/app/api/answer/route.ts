@@ -1,16 +1,24 @@
 import { NextResponse } from 'next/server';
+import { searchChunks } from '@/backend/augment/search-chunks';
+import { answerFromContext } from '@/backend/generate/answer-question';
 
 export async function POST(req: Request) {
-  const { question } = await req.json();
+  try {
+    const { question } = await req.json();
 
-  console.log('Received question:', question);
+    if (!question || typeof question !== 'string') {
+      return NextResponse.json({ error: 'Invalid question' }, { status: 400 });
+    }
 
-  // Simulate a short delay and return dummy data
-  return NextResponse.json({
-    answer: `✅ Dummy answer for: ${question}`,
-    sources: [
-      'https://legislatie.just.ro/Public/DetaliiDocument/111111',
-      'https://legislatie.just.ro/Public/DetaliiDocument/222222',
-    ],
-  });
+    const chunks = await searchChunks(question);
+    const answer = await answerFromContext(question, chunks);
+
+    return NextResponse.json({
+      answer,
+      sources: chunks.map((c) => `https://legislatie.just.ro/Public/DetaliiDocument/${c.sourceId}`),
+    });
+  } catch (err) {
+    console.error('❌ API error in /api/answer:', err);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
 }
