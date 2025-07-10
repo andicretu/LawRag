@@ -15,8 +15,11 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       answer,
-      sources: chunks.map((c) => `https://legislatie.just.ro/Public/DetaliiDocument/${c.sourceId}`),
-    });
+      sources: chunks.map((c) => ({
+        title: c.title,
+        url: `https://legislatie.just.ro/Public/DetaliiDocument/${c.sourceId}`,
+    }))
+  });
   } catch (err) {
     console.error('❌ API error in /api/answer:', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

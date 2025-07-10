@@ -5,6 +5,7 @@ export interface EmbeddedChunk {
   chunkIndex: number;
   sourceId: string;
   text: string;
+  title: string;
 
   // Optional metadata fields — used by some parts like rerank
   code?: string;

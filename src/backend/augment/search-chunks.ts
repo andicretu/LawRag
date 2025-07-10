@@ -74,14 +74,19 @@ export async function searchChunks(question: string): Promise<EmbeddedChunk[]> {
     chunk_text: string;
     document_id: string;
     sequence_idx: number;
+    source_id: string;
+    title: string;
   }>(`
-    SELECT chunk_id, 
-           chunk_text, 
-           document_id, 
-           sequence_idx
-    FROM law_chunks
-    WHERE embedding IS NOT NULL
-  ORDER BY embedding <=> $1
+    SELECT c.chunk_id, 
+           c.chunk_text, 
+           c.document_id, 
+           c.sequence_idx,
+           d.source_id,
+           d.title
+    FROM law_chunks AS c
+    JOIN documents AS d ON c.document_id = d.id
+    WHERE c.embedding IS NOT NULL
+    ORDER BY c.embedding <=> $1
     LIMIT 5
   `
   , [vecLiteral]);
@@ -92,8 +97,9 @@ export async function searchChunks(question: string): Promise<EmbeddedChunk[]> {
   const relevantChunks: EmbeddedChunk[] = rows.map(row => ({
     chunkId: row.chunk_id,
     text: row.chunk_text,
-    sourceId: row.document_id ?? "unknown",
+    sourceId: row.source_id ?? "unknown",
     chunkIndex: row.sequence_idx ?? 0,
+    title: row.title ?? "Titlu necunoscut",
   }));
 
     // 5) Persist to file
