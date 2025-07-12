@@ -9,7 +9,7 @@ export default function LegalQuestionPage() {
   const [question, setQuestion] = useState("")
   const [status, setStatus] = useState("Pregatit")
   const [answer, setAnswer] = useState("")
-  const [links, setLinks] = useState<{title: string; url: string }[]>([])
+  const [links, setLinks] = useState<{title: string; url: string;text: string }[]>([])
   const [isLoading, setIsLoading] = useState(false)
 
   const handleSubmit = async () => {
@@ -38,7 +38,8 @@ export default function LegalQuestionPage() {
       setAnswer(data.answer)
       setLinks(data.sources || [])
     } catch (error) {
-      setStatus("A aparut o eroare de conectare")
+      setStatus(`A aparut o eroare de conectare: ${error}`);
+      console.error(error);
     } finally {
       setIsLoading(false)
     }
@@ -117,19 +118,37 @@ export default function LegalQuestionPage() {
                 {links.length > 0 ? (
                   <div className="space-y-2">
                     {links.map((link, i) => (
-                      <div key={i} className="flex items-start space-x-2 p-2 bg-slate-50 rounded-lg">
-                        <div className="w-5 h-5 bg-slate-200 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <span className="text-xs font-medium text-slate-600">{i + 1}</span>
-                            </div>
-                              <a
-                                href={link.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-600 hover:text-blue-800 underline decoration-blue-200 hover:decoration-blue-400"
-                              >
-                                {link.title}
-                              </a>
+                      <div
+                        key={i}
+                        className="flex flex-col justify-between p-3 bg-slate-50 rounded-lg min-h-[96px] shadow-sm"
+                      >
+                        <div className="flex items-start space-x-2">
+                          <div className="w-5 h-5 bg-slate-200 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <span className="text-xs font-medium text-slate-600">{i + 1}</span>
                           </div>
+                          <div className="text-xs text-slate-700 leading-tight">
+                            <div className="font-medium mb-1">{link.title}</div>
+                            <a
+                              href={link.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 underline decoration-blue-200 hover:decoration-blue-400"
+                            >
+                              Deschide document
+                            </a>
+                          </div>
+                        </div>
+
+                        <button
+                          className="text-xs text-slate-500 underline hover:text-slate-700 transition text-left mt-2"
+                          onClick={() => {
+                            localStorage.setItem("selectedChunk", link.text);
+                            window.open("/sectiune", "_blank");
+                          }}
+                        >
+                          Vezi secțiunea
+                        </button>
+                      </div>
                     ))}
                   </div>
                 ) : (

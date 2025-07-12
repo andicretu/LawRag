@@ -14,17 +14,17 @@ export async function answerFromContext(question: string, relevantChunks: Embedd
   const messages = [
     {
       role: "system",
-      content: "You are a legal assistant that answers questions based strictly on Romanian law."
+      content: "Ești un asistent juridic specializat în legislația română. Răspunde întrebărilor strict pe baza contextului oferit. Include întotdeauna referințele legale exacte, precum articolul, alineatul și numărul, atunci când sunt disponibile."
     },
     {
       role: "user",
-      content: `Context:\n${contextText}`
+      content: `Context juridic:\n${contextText}`
     },
     {
       role: "user",
-      content: `Based strictly on the legal context provided, answer this legal question:\n${question}`
+      content: `Pe baza exclusivă a contextului legal de mai sus, răspunde clar și concis la următoarea întrebare, incluzând toate referințele relevante:\n${question}`
     }
-  ];
+  ]
 
   const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
     method: "POST",

@@ -6,7 +6,6 @@ export interface EmbeddedChunk {
   sourceId: string;
   text: string;
   title: string;
-
   // Optional metadata fields — used by some parts like rerank
   code?: string;
   url?: string;
