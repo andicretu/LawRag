@@ -51,14 +51,16 @@ async function fetchEmbedding(text: string): Promise<number[]> {
 }
 
 export async function searchChunks(question: string): Promise<EmbeddedChunk[]> {
+   console.log(`[${new Date().toISOString()}] 🟡 Starting searchChunks`);
   const client = new Client({ connectionString: process.env.DATABASE_URL });
   await client.connect();
+  console.log(`[${new Date().toISOString()}] ✅ Connected to database`);
 
   let questionEmbedding;
   try {
-    console.time("Fetch embeddings");
+    console.time("⏱️ Fetch embeddings");
     questionEmbedding = await fetchEmbedding(question);
-    console.timeEnd("Fetch embeddings");
+    console.timeEnd("⏱️ Fetch embeddings");
   } catch (err) {
     console.error("Error while fetching embedding", err);
     throw err;
@@ -67,8 +69,9 @@ export async function searchChunks(question: string): Promise<EmbeddedChunk[]> {
   const vecLiteral = `[${questionEmbedding.join(",")}]`;
 
   await client.query(`SET ivfflat.probes = 5;`);
+  console.log(`[${new Date().toISOString()}] 🛠️ Set IVFFLAT probe count`);
 
-  console.time("DB query");
+  console.time("⏱️ Vector DB query");
   const { rows } = await client.query<{
     chunk_id: number;
     chunk_text: string;
@@ -90,9 +93,10 @@ export async function searchChunks(question: string): Promise<EmbeddedChunk[]> {
     LIMIT 5
   `
   , [vecLiteral]);
-  console.timeEnd("DB query");
+  console.timeEnd("⏱️ Vector DB query");
 
   await client.end();
+  console.log(`[${new Date().toISOString()}] ✅ DB connection closed`);
 
   const relevantChunks: EmbeddedChunk[] = rows.map(row => ({
     chunkId: row.chunk_id,
@@ -109,7 +113,7 @@ export async function searchChunks(question: string): Promise<EmbeddedChunk[]> {
     JSON.stringify({ question, relevantChunks }, null, 2),
     "utf-8"
   );
-  console.log("📁 Saved relevant chunks to:", SELECTED_CONTEXT_FILE);
+  console.log(`[${new Date().toISOString()}] 📦 Retrieved ${relevantChunks.length} relevant chunks`);
 
   return relevantChunks;
 }

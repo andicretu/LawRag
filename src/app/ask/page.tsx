@@ -13,37 +13,51 @@ export default function LegalQuestionPage() {
   const [isLoading, setIsLoading] = useState(false)
 
   const handleSubmit = async () => {
-    if (!question.trim()) return
+    if (!question.trim()) return;
 
-    setIsLoading(true)
-    setStatus("Procesam intrebarea")
-    setAnswer("")
-    setLinks([])
+    setIsLoading(true);
+    setAnswer("");
+    setLinks([]);
+    setStatus("Ne asiguram ca am inteles intrebarea");
 
     try {
-      const res = await fetch("/api/answer", {
+      // Step 1: Clarify
+      const clarifyRes = await fetch("/api/clarify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question }),
-      })
+      });
+      const { clarifiedQuestion } = await clarifyRes.json();
 
-      if (!res.ok) {
-        setStatus("Nu am putut obtine un raspuns")
-        setIsLoading(false)
-        return
-      }
+      setStatus("Cautam documentele relevante");
 
-      const data = await res.json()
-      setStatus("Am gasit 5 texte relevante. Raspunsul final este pregatit.")
-      setAnswer(data.answer)
-      setLinks(data.sources || [])
+      // ✅ Step 2: Search with clarifiedQuestion
+      const searchRes = await fetch("/api/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clarifiedQuestion }),
+      });
+      const { sources } = await searchRes.json(); // sources == chunks
+
+      setLinks(sources || []);
+      setStatus("Asteptam raspunsul LLM-ului");
+
+      // ✅ Step 3: Answer with clarifiedQuestion and chunks
+      const answerRes = await fetch("/api/answer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clarifiedQuestion, chunks: sources }),
+      });
+      const { answer } = await answerRes.json();
+
+      setAnswer(answer);
+      setStatus("Raspunsul final este pregatit.");
     } catch (error) {
-      setStatus(`A aparut o eroare de conectare: ${error}`);
-      console.error(error);
+      setStatus(`A aparut o eroare: ${error}`);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50">

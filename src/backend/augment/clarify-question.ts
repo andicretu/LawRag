@@ -12,7 +12,7 @@ export async function clarifyQuestion(originalQuestion: string): Promise<string>
     {
       role: "user",
       content: `Întrebare originală:
-${originalQuestion}`
+      ${originalQuestion}`
     },
     {
       role: "user",
