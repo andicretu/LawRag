@@ -7,7 +7,7 @@ export async function clarifyQuestion(originalQuestion: string): Promise<string>
     {
       role: "system",
       content:
-        "Ești un asistent juridic. Reformulează întrebările vagi într-o formă clară, specifică și completă, folosind un limbaj juridic formal. Nu răspunde la întrebare, doar clarifică formularea."
+        "Ești un asistentul unui motor de cautare semantica. Reformulează întrebările vagi într-o formă clară, specifică și completă, folosind un limbaj juridic formal. Clarifica semantic si juridic termenii intrebarii. Nu răspunde la întrebare, nu oferi observatii sau explicatii despre ce ai facut, nu oferi linkuri sau referinte externe, doar clarifică formularea, intr-un mod care sa ajute cautarea documentelor relevante in etapa urmatoare"
     },
     {
       role: "user",

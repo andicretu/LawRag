@@ -90,7 +90,7 @@ export async function searchChunks(question: string): Promise<EmbeddedChunk[]> {
     JOIN documents AS d ON c.document_id = d.id
     WHERE c.embedding IS NOT NULL
     ORDER BY c.embedding <=> $1
-    LIMIT 5
+    LIMIT 10
   `
   , [vecLiteral]);
   console.timeEnd("⏱️ Vector DB query");
@@ -98,13 +98,28 @@ export async function searchChunks(question: string): Promise<EmbeddedChunk[]> {
   await client.end();
   console.log(`[${new Date().toISOString()}] ✅ DB connection closed`);
 
-  const relevantChunks: EmbeddedChunk[] = rows.map(row => ({
+  // Group chunks by title and keep only the newest (highest document_id)
+const dedupedMap = new Map<string, typeof rows[0]>();
+
+for (const row of rows) {
+  const existing = dedupedMap.get(row.title);
+  if (!existing || row.document_id > existing.document_id) {
+    dedupedMap.set(row.title, row);
+  }
+}
+
+// Get deduplicated top chunks (up to 5)
+const dedupedChunks = Array.from(dedupedMap.values()).slice(0, 5);
+
+  const relevantChunks: EmbeddedChunk[] = dedupedChunks.map(row => ({
     chunkId: row.chunk_id,
     text: row.chunk_text,
     sourceId: row.source_id ?? "unknown",
     chunkIndex: row.sequence_idx ?? 0,
     title: row.title ?? "Titlu necunoscut",
   }));
+
+  console.log(relevantChunks);
 
     // 5) Persist to file
   await mkdir(RELEVANT_DIR, { recursive: true });
