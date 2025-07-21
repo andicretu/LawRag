@@ -1,18 +1,14 @@
+// **src/app/ask/page-logged.tsx**
 "use client"
 
 import { useState, useEffect } from "react"
-import { useAuth0 } from "@auth0/auth0-react"
-import { LogoutOptions } from "@auth0/auth0-react";
+import { useAuth0, LogoutOptions } from "@auth0/auth0-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { useRouter } from 'next/navigation'
 
-
-export default function LegalQuestionPage() {
-
-const router = useRouter()
+export default function LegalQuestionPageLogged() {
   const {
     isAuthenticated,
     isLoading: authLoading,
@@ -20,85 +16,75 @@ const router = useRouter()
     logout,
     user,
     getAccessTokenSilently,
-  } = useAuth0()
+  } = useAuth0();
 
   useEffect(() => {
-    // as soon as we know who they are...
-    if (!authLoading && isAuthenticated) {
-      // 1) sync to your backend
-      (async () => {
-        try {
-          const token = await getAccessTokenSilently()
-          await fetch('/api/auth/sync', {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${token}` },
-          })
-          // optionally notify on first-time registration
-        } catch (err) {
-          console.error('❌ Failed to sync user:', err)
-        }
-      })()
-
-      // 2) redirect into the logged-in Q/A page
-      router.replace('/ask/logged')
+    if (!isAuthenticated) return;
+    const syncUser = async () => {
+      try {
+        const token = await getAccessTokenSilently()
+        await fetch("/api/auth/sync", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        })
+      } catch (err) {
+        console.error("❌ Failed to sync user:", err)
+      }
     }
-  }, [authLoading, isAuthenticated, getAccessTokenSilently, router])
+    syncUser()
+  }, [isAuthenticated, getAccessTokenSilently])
 
   const [question, setQuestion] = useState("")
   const [status, setStatus] = useState("Pregatit")
   const [answer, setAnswer] = useState("")
-  const [links, setLinks] = useState<{title: string; url: string;text: string }[]>([])
+  const [links, setLinks] = useState<{ title: string; url: string; text: string }[]>([])
   const [isLoading, setIsLoading] = useState(false)
-
 
   const handleSubmit = async () => {
     if (!question.trim()) return;
-
-    setIsLoading(true);
-    setAnswer("");
-    setLinks([]);
-    setStatus("Ne asiguram ca am inteles intrebarea");
+    setIsLoading(true)
+    setAnswer("")
+    setLinks([])
+    setStatus("Ne asiguram ca am inteles intrebarea")
 
     try {
-      // Step 1: Clarify
+      // 1. Clarification
       const clarifyRes = await fetch("/api/clarify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question }),
-      });
-      const { clarifiedQuestion } = await clarifyRes.json();
+      })
+      const { clarifiedQuestion } = await clarifyRes.json()
 
-      setStatus("Cautam documentele relevante");
-
-      // ✅ Step 2: Search with clarifiedQuestion
+      setStatus("Cautam documentele relevante")
+      // 2. Search
       const searchRes = await fetch("/api/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ clarifiedQuestion }),
-      });
-      const { sources } = await searchRes.json(); // sources == chunks
+      })
+      const { sources } = await searchRes.json()
+      setLinks(sources || [])
 
-      setLinks(sources || []);
-      setStatus("Asteptam raspunsul LLM-ului");
-
-      // ✅ Step 3: Answer with clarifiedQuestion and chunks
+      setStatus("Asteptam raspunsul LLM-ului")
+      // 3. Answer
       const answerRes = await fetch("/api/answer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ clarifiedQuestion, chunks: sources }),
-      });
-      const { answer } = await answerRes.json();
+      })
+      const { answer: aiAnswer } = await answerRes.json()
 
-      setAnswer(answer);
-      setStatus("Raspunsul final este pregatit.");
+      setAnswer(aiAnswer)
+      setStatus("Raspunsul final este pregatit.")
     } catch (error) {
-      setStatus(`A aparut o eroare: ${error}`);
+      setStatus(`A aparut o eroare: ${error}`)
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
- return (
+  return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
       <header className="flex items-center justify-between px-6 py-4 border-b bg-white shadow-sm">
@@ -114,20 +100,26 @@ const router = useRouter()
               </Avatar>
               <Button
                 variant="outline"
-                onClick={() => logout({ logoutParams: { returnTo: `${window.location.origin}/ask` },
-                } as LogoutOptions)}
+                onClick={() =>
+                  logout({
+                    logoutParams: { returnTo: `${window.location.origin}/ask` },
+                  } as LogoutOptions)
+                }
               >
                 Log out
               </Button>
             </>
           ) : (
-            <Button onClick={() => 
-              loginWithRedirect({
-                 appState: { returnTo: '/ask/logged' },
-                 authorizationParams: {
-                  redirect_uri: `${window.location.origin}/ask/logged`
-                 }
-              })}>
+            <Button
+              onClick={() =>
+                loginWithRedirect({
+                  appState: { returnTo: window.location.pathname },
+                  authorizationParams: {
+                    redirect_uri: `${window.location.origin}${window.location.pathname}`
+                  }
+                })
+              }
+            >
               Log in / Register
             </Button>
           )}
@@ -149,7 +141,6 @@ const router = useRouter()
               className="min-h-[100px] border-slate-200 focus:border-slate-400 focus:ring-2 focus:ring-slate-400/20 text-base resize-none"
             />
             <div className="flex items-center justify-between">
-              {/* Status Display - Left Side */}
               <div className="flex items-center text-sm text-slate-600">
                 <span>{status}</span>
                 {isLoading && (
@@ -160,7 +151,6 @@ const router = useRouter()
                   </span>
                 )}
               </div>
-
               <Button
                 onClick={handleSubmit}
                 disabled={isLoading || !question.trim()}
@@ -172,9 +162,8 @@ const router = useRouter()
           </CardContent>
         </Card>
 
-        {/* Section 2: Answer (2/3) and Sources (1/3) in Same Row */}
+        {/* Section 2: Answer and Sources */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Answer - Takes 2/3 of the space */}
           <div className="lg:col-span-2">
             <Card className="border-0 shadow-sm bg-white h-full">
               <CardHeader className="pb-4">
@@ -195,8 +184,6 @@ const router = useRouter()
               </CardContent>
             </Card>
           </div>
-
-          {/* Relevant Sources - Takes 1/3 of the space */}
           <div className="lg:col-span-1">
             <Card className="border-0 shadow-sm bg-white h-full">
               <CardHeader className="pb-4">
@@ -226,12 +213,11 @@ const router = useRouter()
                             </a>
                           </div>
                         </div>
-
                         <button
                           className="text-xs text-slate-500 underline hover:text-slate-700 transition text-left mt-2"
                           onClick={() => {
-                            localStorage.setItem("selectedChunk", link.text);
-                            window.open("/sectiune", "_blank");
+                            localStorage.setItem("selectedChunk", link.text)
+                            window.open("/sectiune", "_blank")
                           }}
                         >
                           Vezi secțiunea
@@ -249,6 +235,28 @@ const router = useRouter()
           </div>
         </div>
       </div>
+
+      {/* Prompt input at end for logged-in users */}
+      {isAuthenticated && (
+        <div className="max-w-6xl mx-auto px-6 py-8">
+          <Card className="border-0 shadow-sm bg-white">
+            <CardHeader>
+              <CardTitle>Continuă dialogul</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                placeholder="Adaugă un follow-up..."
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                className="min-h-[100px] border-slate-200 focus:border-slate-400 focus:ring-2 focus:ring-slate-400/20 resize-none"
+              />
+              <Button onClick={handleSubmit} disabled={!question.trim() || isLoading} className="mt-4">
+                Trimite
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   )
 }
