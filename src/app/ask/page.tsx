@@ -1,16 +1,47 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useAuth0 } from "@auth0/auth0-react"
+import { LogoutOptions } from "@auth0/auth0-react";
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 export default function LegalQuestionPage() {
+
+  const { isAuthenticated, isLoading: authLoading, loginWithRedirect, logout, user, getAccessTokenSilently } = useAuth0();
+
+  useEffect(() => {
+    const syncUser = async () => {
+      try {
+        const token = await getAccessTokenSilently();
+        const res = await fetch("/api/auth/sync", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const data = await res.json();
+        if (data.registered) {
+          alert("✅ Thank you for registering!");
+        }
+      } catch (err) {
+        console.error("❌ Failed to sync user:", err);
+      }
+    };
+
+    if (isAuthenticated) {
+      syncUser();
+    }
+  }, [isAuthenticated, getAccessTokenSilently]);
+
   const [question, setQuestion] = useState("")
   const [status, setStatus] = useState("Pregatit")
   const [answer, setAnswer] = useState("")
   const [links, setLinks] = useState<{title: string; url: string;text: string }[]>([])
   const [isLoading, setIsLoading] = useState(false)
+
 
   const handleSubmit = async () => {
     if (!question.trim()) return;
@@ -59,8 +90,39 @@ export default function LegalQuestionPage() {
     }
   };
 
-  return (
+ return (
     <div className="min-h-screen bg-slate-50">
+      {/* Header */}
+      <header className="flex items-center justify-between px-6 py-4 border-b bg-white shadow-sm">
+        <h1 className="text-xl font-semibold text-slate-900">LawRAG Assistant</h1>
+        <div className="flex items-center gap-4">
+          {authLoading ? (
+            <span className="text-sm text-slate-500">Se încarcă...</span>
+          ) : isAuthenticated && user ? (
+            <>
+              <Avatar>
+                <AvatarImage src={user.picture} alt={user.name} />
+                <AvatarFallback>{user.name?.[0]}</AvatarFallback>
+              </Avatar>
+              <Button
+                variant="outline"
+                onClick={() => logout({ returnTo: window.location.origin } as LogoutOptions & { returnTo: string })}
+              >
+                Log out
+              </Button>
+            </>
+          ) : (
+            <Button onClick={() => 
+              loginWithRedirect({
+                appState: { returnTo: "/ask" }
+              })}>
+              Log in / Register
+            </Button>
+          )}
+        </div>
+      </header>
+
+      {/* Main Content */}
       <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
         {/* Section 1: Input Field with Status */}
         <Card className="border-0 shadow-sm bg-white">
