@@ -106,7 +106,8 @@ export default function LegalQuestionPage() {
               </Avatar>
               <Button
                 variant="outline"
-                onClick={() => logout({ returnTo: window.location.origin } as LogoutOptions & { returnTo: string })}
+                onClick={() => logout({ logoutParams: { returnTo: `${window.location.origin}/ask` },
+                } as LogoutOptions)}
               >
                 Log out
               </Button>
