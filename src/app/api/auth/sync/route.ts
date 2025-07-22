@@ -1,15 +1,20 @@
 // src/app/api/auth/sync/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify, createRemoteJWKSet } from "jose";
-import { Client } from "pg";   // however you centralize your PG client
+import { Pool } from "pg";
 
 const JWKS = createRemoteJWKSet(
   new URL(`https://${process.env.NEXT_PUBLIC_AUTH0_DOMAIN}/.well-known/jwks.json`)
 );
 
-
-const client = new Client({ connectionString: process.env.DATABASE_URL });
-await client.connect();
+// Single Pool instance at module scope.
+// This does *not* immediately connect when imported, only upon first query.
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  max: 10,              // up to 10 clients in the pool
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
+});
 
 export async function POST(req: NextRequest) {
   const authHeader = req.headers.get("authorization") || "";
@@ -29,14 +34,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid token payload" }, { status: 400 });
     }
 
-    // check/create user by sub only
-    const { rows } = await client.query(
+    // Use pool.query() directly for simple queries
+    const { rows } = await pool.query(
       "SELECT id FROM users WHERE auth0_id = $1",
       [auth0_id]
     );
 
     if (rows.length === 0) {
-      await client.query(
+      await pool.query(
         "INSERT INTO users (auth0_id) VALUES ($1)",
         [auth0_id]
       );
