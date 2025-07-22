@@ -1,20 +1,11 @@
 // src/app/api/auth/sync/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify, createRemoteJWKSet } from "jose";
-import { Pool } from "pg";
+import { pool }                      from '@/backend/lib/db';
 
 const JWKS = createRemoteJWKSet(
   new URL(`https://${process.env.NEXT_PUBLIC_AUTH0_DOMAIN}/.well-known/jwks.json`)
 );
-
-// Single Pool instance at module scope.
-// This does *not* immediately connect when imported, only upon first query.
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  max: 10,              // up to 10 clients in the pool
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
-});
 
 export async function POST(req: NextRequest) {
   const authHeader = req.headers.get("authorization") || "";
