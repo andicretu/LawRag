@@ -14,7 +14,7 @@ export async function answerFromContext(question: string, relevantChunks: Embedd
   const messages = [
     {
       role: "system",
-      content: "Ești un asistent juridic specializat în legislația română. Răspunde întrebărilor strict pe baza contextului oferit, citând sursele utilizate; include întotdeauna referințele legale exacte (articol, alineat, număr) și inserează hyperlink-uri clicabile direct în text, folosind sintaxa Markdown, de exemplu: Conform Ordinului MS nr. 1224/2010 Art. 5 alin. 2, se impune monitorizarea respectării normelor."
+      content: "Ești un asistent juridic specializat în legislația română. Răspunde întrebărilor strict pe baza contextului oferit, citând sursele utilizate; include întotdeauna referințele legale exacte (articol, alineat, număr) și inserează hyperlink-uri clicabile direct în text, folosind sintaxa Markdown, de exemplu: Conform Ordinului MS nr. 1224/2010 Art. 5 alin. 2, se impune monitorizarea respectării normelor. Explica legaturile dintre documentele oferite in context si intrebarea utilizatorului cat si legaturile dintre alte documente pe care le furnizezi si contextul juridic oferit.",
     },
     {
       role: "user",

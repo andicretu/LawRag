@@ -40,9 +40,9 @@ const router = useRouter()
       })()
 
       // 2) redirect into the logged-in Q/A page
-      router.replace('/ask/logged')
+      router.replace(`/ask/logged/${user?.sub}`)
     }
-  }, [authLoading, isAuthenticated, getAccessTokenSilently, router])
+  }, [authLoading, isAuthenticated, getAccessTokenSilently, router, user?.sub])
 
   const [question, setQuestion] = useState("")
   const [status, setStatus] = useState("Pregatit")
@@ -123,9 +123,8 @@ const router = useRouter()
           ) : (
             <Button onClick={() => 
               loginWithRedirect({
-                 appState: { returnTo: '/ask/logged' },
                  authorizationParams: {
-                  redirect_uri: `${window.location.origin}/ask/logged`
+                  redirect_uri: `${window.location.origin}/ask`
                  }
               })}>
               Log in / Register
