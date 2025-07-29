@@ -51,52 +51,101 @@ const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
 
 
-  const handleSubmit = async () => {
-    if (!question.trim()) return;
+const handleSubmit = async () => {
+  if (!question.trim()) return;
 
-    setIsLoading(true);
-    setAnswer("");
-    setLinks([]);
-    setStatus("Ne asiguram ca am inteles intrebarea");
+  setIsLoading(true);
+  setAnswer("");
+  setLinks([]);
+  setStatus("Ne asiguram ca am inteles intrebarea");
 
-    try {
-      // Step 1: Clarify
-      const clarifyRes = await fetch("/api/clarify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question }),
-      });
-      const { clarifiedQuestion } = await clarifyRes.json();
+  try {
+    const token = await getAccessTokenSilently();
 
-      setStatus("Cautam documentele relevante");
+    // Step 1: Clarify
+    console.log("🪪 Token sent to /api/clarify:", token);
 
-      // ✅ Step 2: Search with clarifiedQuestion
-      const searchRes = await fetch("/api/search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clarifiedQuestion }),
-      });
-      const { sources } = await searchRes.json(); // sources == chunks
+    const clarifyRes = await fetch("/api/clarify", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      credentials: "include",
+      body: JSON.stringify({ question }),
+    });
 
-      setLinks(sources || []);
-      setStatus("Asteptam raspunsul LLM-ului");
-
-      // ✅ Step 3: Answer with clarifiedQuestion and chunks
-      const answerRes = await fetch("/api/answer", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clarifiedQuestion, chunks: sources }),
-      });
-      const { answer } = await answerRes.json();
-
-      setAnswer(answer);
-      setStatus("Raspunsul final este pregatit.");
-    } catch (error) {
-      setStatus(`A aparut o eroare: ${error}`);
-    } finally {
-      setIsLoading(false);
+    if (!clarifyRes.ok) {
+      throw new Error("Clarify failed");
     }
-  };
+
+    const { clarifiedQuestion } = await clarifyRes.json();
+    if (!clarifiedQuestion) {
+      throw new Error("No clarified question returned");
+    }
+
+    setStatus("Cautam documentele relevante");
+
+    // Step 2: Search
+    const searchRes = await fetch("/api/search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clarifiedQuestion }),
+    });
+
+    if (!searchRes.ok) {
+      throw new Error("Search failed");
+    }
+
+    const { sources } = await searchRes.json();
+    if (!Array.isArray(sources)) {
+      throw new Error("No sources returned from search");
+    }
+
+    setLinks(sources || []);
+    setStatus("Asteptam raspunsul LLM-ului");
+
+    // Step 3: Answer
+    const answerRes = await fetch("/api/answer", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clarifiedQuestion, chunks: sources }),
+    });
+
+    if (!answerRes.ok) {
+      throw new Error("Answer generation failed");
+    }
+
+    const { answer, sources: finalSources } = await answerRes.json();
+    if (!answer || typeof answer !== "string") {
+      throw new Error("Invalid answer format");
+    }
+
+    setAnswer(answer);
+    setLinks(finalSources || []);
+    setStatus("Raspunsul final este pregatit.");
+
+    // ✅ Step 4: Save to /api/chats
+    await fetch(`/api/chats?userId=${user?.sub}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        question,
+        answer,
+        links: finalSources || [],
+      }),
+    });
+  } catch (error) {
+    console.error("❌ handleSubmit failed:", error);
+    setStatus(`A aparut o eroare: ${error}`);
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
  return (
     <div className="min-h-screen bg-slate-50">

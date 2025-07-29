@@ -1,8 +1,12 @@
 import fetch from "node-fetch";
+import dotenv from "dotenv";
+import path from "path";
 
-const MODEL = "deepseek-chat"; // or use your preferred model
+dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
-export async function clarifyQuestion(originalQuestion: string): Promise<string> {
+const MODEL = "deepseek-chat";
+
+export async function clarifyQuestion(originalQuestion: string, summary: string): Promise<string> {
   const messages = [
     {
       role: "system",
@@ -11,8 +15,9 @@ export async function clarifyQuestion(originalQuestion: string): Promise<string>
     },
     {
       role: "user",
-      content: `Întrebare originală:
-      ${originalQuestion}`
+      content: summary
+        ? `Rezumatul conversației până acum:\n${summary}\n\nÎntrebare originală:\n${originalQuestion}`
+        : `Întrebare originală:\n${originalQuestion}`
     },
     {
       role: "user",
