@@ -79,9 +79,13 @@ export default function LegalQuestionPageLogged( {
 
     try {
       // Clarify
+      const token = await getAccessTokenSilently()
       const clarifyRes = await fetch(`/api/clarify`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`, // ✅ Pass token properly
+        },
         body: JSON.stringify({ question }),
       })
       const { clarifiedQuestion } = await clarifyRes.json()
@@ -110,7 +114,6 @@ export default function LegalQuestionPageLogged( {
       setStatus('Raspunsul final este pregatit.')
 
       // Persist to backend
-      const token = await getAccessTokenSilently()
       await fetch(`/api/chats?userId=${userId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },

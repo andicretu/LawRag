@@ -52,6 +52,12 @@ const router = useRouter()
 
 
 const handleSubmit = async () => {
+
+  console.log("🚀 handleSubmit triggered");
+  if (!question.trim()) {
+    console.log("⛔ Question is empty or only whitespace");
+    return;
+  }
   if (!question.trim()) return;
 
   setIsLoading(true);
@@ -60,19 +66,24 @@ const handleSubmit = async () => {
   setStatus("Ne asiguram ca am inteles intrebarea");
 
   try {
-    const token = await getAccessTokenSilently();
+    let token = "";
+    try {
+      token = await getAccessTokenSilently();
+      console.log("✅ Token received:", token);
+    } catch (err) {
+      console.error("❌ Failed to get token:", err instanceof Error ? err.message : err);
+      return;
+    }
 
     // Step 1: Clarify
-    console.log("🪪 Token sent to /api/clarify:", token);
 
     const clarifyRes = await fetch("/api/clarify", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${token}`, // ✅ Pass token in header
       },
-      credentials: "include",
-      body: JSON.stringify({ question }),
+      body: JSON.stringify({ question }),  // ✅ Only the question goes in the body
     });
 
     if (!clarifyRes.ok) {
