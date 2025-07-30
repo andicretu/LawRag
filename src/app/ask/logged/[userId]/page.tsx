@@ -2,7 +2,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { useRouter, usePathname } from "next/navigation"
+import { useParams, useRouter, usePathname } from "next/navigation"
 import { useAuth0, LogoutOptions } from "@auth0/auth0-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -15,15 +15,10 @@ interface ChatEntry {
   links: { title: string; url: string; text: string }[]
 }
 
-type Props = {
-  params: { userId: string }
-};
+export default function LegalQuestionPageLogged() {
+  const params = useParams()
+  const userId = params?.userId as string
 
-export default function LegalQuestionPageLogged( {
-  params,
-}: Props) {
-  const {userId} = params;  
-  
   // Extract userId from params
   // This is the userId from the URL, e.g. /ask/logged/
   const router = useRouter()
