@@ -1,7 +1,7 @@
 // **src/app/ask/logged/page.tsx**
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { useAuth0, LogoutOptions } from "@auth0/auth0-react"
 import { Button } from "@/components/ui/button"
@@ -71,6 +71,14 @@ export default function LegalQuestionPageLogged( {
     }
   }, [authLoading, isAuthenticated, getAccessTokenSilently, router, pathname, userId])
 
+  const endOfPageRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (endOfPageRef.current) {
+      endOfPageRef.current.scrollIntoView({ behavior: "smooth" })
+    }
+  }, [chatHistory])
+
   const handleSubmit = async () => {
     if (!question.trim()) return
 
@@ -130,112 +138,114 @@ export default function LegalQuestionPageLogged( {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <header className="flex items-center justify-between px-6 py-4 border-b bg-white shadow-sm">
-        <h1 className="text-xl font-semibold text-slate-900">LawRAG Assistant</h1>
-        <div className="flex items-center gap-4">
-          {authLoading ? (
-            <span className="text-sm text-slate-500">Se încarcă...</span>
-          ) : isAuthenticated && user ? (
-            <>
-              <Avatar>
-                <AvatarImage src={user.picture} alt={user.name} />
-                <AvatarFallback>{user.name?.[0]}</AvatarFallback>
-              </Avatar>
-              <Button
-                variant="outline"
-                onClick={() =>
-                  logout({ logoutParams: { returnTo: `${window.location.origin}/ask` } } as LogoutOptions)
-                }
-              >
-                Log out
-              </Button>
-            </>
-          ) : (
+  <div className="min-h-screen bg-slate-50">
+    {/* Header */}
+    <header className="flex items-center justify-between px-6 py-4 border-b bg-white shadow-sm">
+      <h1 className="text-xl font-semibold text-slate-900">StieLegi.ro</h1>
+      <div className="flex items-center gap-4">
+        {authLoading ? (
+          <span className="text-sm text-slate-500">Se încarcă...</span>
+        ) : isAuthenticated && user ? (
+          <>
+            <Avatar>
+              <AvatarImage src={user.picture} alt={user.name} />
+              <AvatarFallback>{user.name?.[0]}</AvatarFallback>
+            </Avatar>
             <Button
+              variant="outline"
               onClick={() =>
-                loginWithRedirect({
-                  appState: { returnTo: `/ask/logged/${user?.sub }` },
-                  authorizationParams: { 
-                    redirect_uri: `${window.location.origin}/ask/logged/${user?.sub}` 
-                  }
-                })
+                logout({ logoutParams: { returnTo: `${window.location.origin}/ask` } } as LogoutOptions)
               }
             >
-              Log in / Register
+              Log out
             </Button>
-          )}
-        </div>
-      </header>
+          </>
+        ) : (
+          <Button
+            onClick={() =>
+              loginWithRedirect({
+                appState: { returnTo: `/ask/logged/${user?.sub}` },
+                authorizationParams: {
+                  redirect_uri: `${window.location.origin}/ask/logged/${user?.sub}`,
+                },
+              })
+            }
+          >
+            Log in / Register
+          </Button>
+        )}
+      </div>
+    </header>
 
-      <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
-        {/* Render chat history */}
-        {chatHistory.map((entry, i) => (
-          <div key={i} className="space-y-4">
-            <Card className="border-0 shadow-sm bg-white">
-              <CardHeader>
-                <CardTitle>Întrebare</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="whitespace-pre-wrap text-base text-slate-800">{entry.question}</p>
-              </CardContent>
-            </Card>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2">
-                <Card className="border-0 shadow-sm bg-white h-full">
-                  <CardHeader>
-                    <CardTitle>Raspuns</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="whitespace-pre-wrap text-base text-slate-800 leading-relaxed min-h-[60px] p-4 bg-slate-50 rounded-lg">
-                      {entry.answer}
+    <div className="max-w-6xl mx-auto px-6 py-8 space-y-6 text-base text-slate-800">
+      {/* Render chat history */}
+      {chatHistory.map((entry, i) => (
+        <div key={i} className="space-y-4">
+          <Card className="border-0 shadow-sm bg-slate-200">
+            <CardHeader>
+              <CardTitle className="text-base font-semibold text-slate-900">Întrebare</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="whitespace-pre-wrap">{entry.question}</p>
+            </CardContent>
+          </Card>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <Card className="border-0 shadow-sm bg-white h-full">
+                <CardHeader>
+                  <CardTitle className="text-base font-semibold text-slate-900">Raspuns</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="whitespace-pre-wrap leading-relaxed min-h-[60px] p-4 bg-slate-50 rounded-lg">
+                    {entry.answer}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            <div className="lg:col-span-1">
+              <Card className="border-0 shadow-sm bg-white h-full">
+                <CardHeader>
+                  <CardTitle className="text-base font-semibold text-slate-900">Surse relevante</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {entry.links.map((link, j) => (
+                    <div key={j} className="flex flex-col space-y-2 p-3 bg-slate-50 rounded-lg">
+                      <div className="font-medium text-sm text-slate-700">{link.title}</div>
+                      <a href={link.url} target="_blank" rel="noopener noreferrer" className="underline text-blue-600 text-sm">
+                        Deschide document
+                      </a>
                     </div>
-                  </CardContent>
-                </Card>
-              </div>
-              <div className="lg:col-span-1">
-                <Card className="border-0 shadow-sm bg-white h-full">
-                  <CardHeader>
-                    <CardTitle>Surse relevante</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {entry.links.map((link, j) => (
-                      <div key={j} className="flex flex-col space-y-2 p-3 bg-slate-50 rounded-lg">
-                        <div className="font-medium text-slate-700 text-sm">{link.title}</div>
-                        <a href={link.url} target="_blank" rel="noopener noreferrer" className="underline text-blue-600">
-                          Deschide document
-                        </a>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              </div>
+                  ))}
+                </CardContent>
+              </Card>
             </div>
           </div>
-        ))}
+        </div>
+      ))}
 
-        {/* Input for new question */}
+      {/* Input for new question */}
+      <div ref={endOfPageRef}>
         <Card className="border-0 shadow-sm bg-white mt-6">
           <CardHeader>
-            <CardTitle>Cu ce va putem ajuta?</CardTitle>
+            <CardTitle className="text-base font-semibold text-slate-900">Cu ce vă putem ajuta?</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <Textarea
               placeholder="Adaugă o întrebare..."
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
-              className="min-h-[100px] resize-none"
+              className="min-h-[100px] resize-none text-base"
             />
             <div className="flex items-center justify-between">
               <span className="text-sm text-slate-600">{status}</span>
               <Button onClick={handleSubmit} disabled={isLoading || !question.trim()}>
-                {isLoading ? 'Procesam...' : 'Trimite'}
+                {isLoading ? "Procesăm..." : "Trimite"}
               </Button>
             </div>
           </CardContent>
         </Card>
       </div>
     </div>
+  </div>
   )
 }

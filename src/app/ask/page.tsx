@@ -156,7 +156,7 @@ const handleSubmit = async () => {
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
       <header className="flex items-center justify-between px-6 py-4 border-b bg-white shadow-sm">
-        <h1 className="text-xl font-semibold text-slate-900">LawRAG Assistant</h1>
+        <h1 className="text-xl font-semibold text-slate-900">StieLegi.ro</h1>
         <div className="flex items-center gap-4">
           {authLoading ? (
             <span className="text-sm text-slate-500">Se încarcă...</span>
