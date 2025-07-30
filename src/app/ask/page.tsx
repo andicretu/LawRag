@@ -7,12 +7,12 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { useRouter } from 'next/navigation'
-
+import { useRouter } from "next/navigation"
 
 export default function LegalQuestionPage() {
 
-const router = useRouter()
+  const router = useRouter()
+
   const {
     isAuthenticated,
     isLoading: authLoading,
@@ -23,26 +23,22 @@ const router = useRouter()
   } = useAuth0()
 
   useEffect(() => {
-    // as soon as we know who they are...
-    if (!authLoading && isAuthenticated) {
-      // 1) sync to your backend
+    if (!authLoading && isAuthenticated && user?.sub) {
       (async () => {
         try {
           const token = await getAccessTokenSilently()
-          await fetch('/api/auth/sync', {
-            method: 'POST',
+          await fetch("/api/auth/sync", {
+            method: "POST",
             headers: { Authorization: `Bearer ${token}` },
-          })
-          // optionally notify on first-time registration
+          });
+          router.replace(`/ask/logged/${user?.sub}`);
         } catch (err) {
-          console.error('❌ Failed to sync user:', err)
+          console.error("❌ Failed to sync user:", err)
         }
       })()
-
-      // 2) redirect into the logged-in Q/A page
-      router.replace(`/ask/logged/${user?.sub}`)
     }
-  }, [authLoading, isAuthenticated, getAccessTokenSilently, router, user?.sub])
+  }, [authLoading, isAuthenticated, user?.sub, getAccessTokenSilently, router]);
+
 
   const [question, setQuestion] = useState("")
   const [status, setStatus] = useState("Pregatit")
@@ -52,12 +48,6 @@ const router = useRouter()
 
 
 const handleSubmit = async () => {
-
-  console.log("🚀 handleSubmit triggered");
-  if (!question.trim()) {
-    console.log("⛔ Question is empty or only whitespace");
-    return;
-  }
   if (!question.trim()) return;
 
   setIsLoading(true);
@@ -65,25 +55,25 @@ const handleSubmit = async () => {
   setLinks([]);
   setStatus("Ne asiguram ca am inteles intrebarea");
 
+  let token: string | null = null;
+
   try {
-    let token = "";
-    try {
-      token = await getAccessTokenSilently();
-      console.log("✅ Token received:", token);
-    } catch (err) {
-      console.error("❌ Failed to get token:", err instanceof Error ? err.message : err);
-      return;
-    }
+    // Try to get token (may fail if not logged in)
+    token = await getAccessTokenSilently();
+    console.log("✅ Token received:", token);
+  } catch (err) {
+    console.warn("⚠️ No token – treating as guest session:", err);
+  }
 
+  try {
     // Step 1: Clarify
-
     const clarifyRes = await fetch("/api/clarify", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`, // ✅ Pass token in header
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-      body: JSON.stringify({ question }),  // ✅ Only the question goes in the body
+      body: JSON.stringify({ question }),
     });
 
     if (!clarifyRes.ok) {
@@ -94,6 +84,8 @@ const handleSubmit = async () => {
     if (!clarifiedQuestion) {
       throw new Error("No clarified question returned");
     }
+
+    // Continue with search + answer steps...
 
     setStatus("Cautam documentele relevante");
 
@@ -136,19 +128,21 @@ const handleSubmit = async () => {
     setLinks(finalSources || []);
     setStatus("Raspunsul final este pregatit.");
 
-    // ✅ Step 4: Save to /api/chats
-    await fetch(`/api/chats?userId=${user?.sub}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        question,
-        answer,
-        links: finalSources || [],
-      }),
-    });
+    // ✅ Step 4: Save to /api/chats — only if authenticated
+    if (token && user?.sub) {
+      await fetch(`/api/chats?userId=${user.sub}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          question,
+          answer,
+          links: finalSources || [],
+        }),
+      });
+    }
   } catch (error) {
     console.error("❌ handleSubmit failed:", error);
     setStatus(`A aparut o eroare: ${error}`);

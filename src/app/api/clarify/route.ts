@@ -1,3 +1,4 @@
+
 import { NextResponse, NextRequest } from "next/server";
 import { clarifyQuestion } from "@/backend/augment/clarify-question";
 import { verifyToken } from "@/backend/lib/auth";
@@ -14,23 +15,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid question" }, { status: 400 });
     }
 
-    // 🛡️ Identify user using token from Authorization header OR from body
-    let tokenUserId: string;
+    // Optional: try to identify user
+    let tokenUserId: string | null = null;
     try {
-      tokenUserId = await verifyToken(rawToken || req); // smart fallback
-    } catch (err) {
-      console.error("❌ Token verification failed:", err);
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      tokenUserId = await verifyToken(rawToken || req);
+    } catch {
+      tokenUserId = null; // not authenticated
     }
 
-    // 🧠 Get latest summary for this user
-    const { rows } = await pool.query(
-      `SELECT summary FROM chats WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1`,
-      [tokenUserId]
-    );
-    const summary = rows[0]?.summary || "";
+    // Optional: fetch summary if user is known
+    let summary = "";
+    if (tokenUserId) {
+      try {
+        const { rows } = await pool.query(
+          `SELECT summary FROM chats WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1`,
+          [tokenUserId]
+        );
+        summary = rows[0]?.summary || "";
+      } catch (err) {
+        console.warn("⚠️ Failed to fetch summary for user:", err);
+      }
+    }
 
-    console.log("🔍 Clarifying question...");
+    // Clarify question using context if available
     const clarifiedQuestion = await clarifyQuestion(originalQuestion, summary);
     console.log("✅ Clarified question:", clarifiedQuestion);
 
