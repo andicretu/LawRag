@@ -15,15 +15,17 @@ interface ChatEntry {
   links: { title: string; url: string; text: string }[]
 }
 
+type Props = {
+  params: { userId: string }
+};
+
 export default function LegalQuestionPageLogged( {
   params,
-}: {
-  params: { userId: string }
-}) {
+}: Props) {
+  const {userId} = params;  
+  
   // Extract userId from params
   // This is the userId from the URL, e.g. /ask/logged/
-  const userId = params.userId;
-
   const router = useRouter()
   const pathname = usePathname()
   const {
