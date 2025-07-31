@@ -199,7 +199,7 @@ const handleSubmit = async () => {
               placeholder="Va rugam introduceti intrebarea..."
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
-              className="min-h-[100px] border-slate-200 focus:border-slate-400 focus:ring-2 focus:ring-slate-400/20 text-base resize-none"
+              className="min-h-[100px] border-slate-200 focus:border-slate-400 focus:ring-2 focus:ring-slate-400/20 text-sm resize-none"
             />
             <div className="flex items-center justify-between">
               {/* Status Display - Left Side */}
@@ -241,7 +241,7 @@ const handleSubmit = async () => {
                     <div className="h-4 bg-slate-200 rounded animate-pulse w-1/2" />
                   </div>
                 ) : (
-                  <div className="whitespace-pre-wrap text-base text-slate-800 leading-relaxed min-h-[60px] p-4 bg-slate-50 rounded-lg">
+                  <div className="whitespace-pre-wrap text-sm text-slate-800 leading-relaxed min-h-[60px] p-4 bg-slate-50 rounded-lg">
                     {answer || "Nu exista niciun raspuns."}
                   </div>
                 )}
