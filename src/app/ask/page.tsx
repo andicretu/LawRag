@@ -8,6 +8,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useRouter } from "next/navigation"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 
 export default function LegalQuestionPage() {
 
@@ -106,7 +108,7 @@ const handleSubmit = async () => {
     }
 
     setLinks(sources || []);
-    setStatus("Asteptam raspunsul LLM-ului");
+    setStatus("Pregatim raspunsul");
 
     // Step 3: Answer
     const answerRes = await fetch("/api/answer", {
@@ -241,8 +243,24 @@ const handleSubmit = async () => {
                     <div className="h-4 bg-slate-200 rounded animate-pulse w-1/2" />
                   </div>
                 ) : (
-                  <div className="whitespace-pre-wrap text-sm text-slate-800 leading-relaxed min-h-[60px] p-4 bg-slate-50 rounded-lg">
-                    {answer || "Nu exista niciun raspuns."}
+                  <div className="text-sm text-slate-800 leading-relaxed min-h-[60px] p-4 bg-slate-50 rounded-lg prose prose-sm max-w-none">
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      components={{
+                        a: ({ href, children }) => (
+                          <a
+                            href={href || "#"}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800 underline"
+                          >
+                            {children}
+                          </a>
+                        ),
+                      }}
+                    >
+                      {answer || "Nu exista niciun raspuns."}
+                    </ReactMarkdown>
                   </div>
                 )}
               </CardContent>

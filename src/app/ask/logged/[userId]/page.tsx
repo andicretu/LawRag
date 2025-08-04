@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 
 interface ChatEntry {
   question: string
@@ -94,7 +96,7 @@ export default function LegalQuestionPageLogged() {
       })
       const { sources } = await searchRes.json()
 
-      setStatus('Asteptam raspunsul LLM-ului')
+      setStatus('Pregatim raspunsul')
       const answerRes = await fetch('/api/answer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -170,16 +172,36 @@ export default function LegalQuestionPageLogged() {
             </Card>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2">
-                <Card className="border-0 shadow-sm bg-white h-full">
-                  <CardHeader>
-                    <CardTitle className="text-base font-semibold text-slate-900">Raspuns</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="whitespace-pre-wrap text-sm leading-relaxed min-h-[60px] p-4 bg-slate-50 rounded-lg">
-                      {entry.answer || "Nu exista niciun raspuns."}
-                    </div>
-                  </CardContent>
-                </Card>
+               <Card className="border-0 shadow-sm bg-white h-full">
+                <CardHeader>
+                  <CardTitle className="text-base font-semibold text-slate-900">Raspuns</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-sm leading-relaxed min-h-[60px] p-4 bg-slate-50 rounded-lg prose prose-sm max-w-none">
+                    {entry.answer ? (
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          a: ({ href, children }) => (
+                            <a
+                              href={href || "#"}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 underline"
+                            >
+                              {children}
+                            </a>
+                          ),
+                        }}
+                      >
+                        {entry.answer}
+                      </ReactMarkdown>
+                    ) : (
+                      "Nu exista niciun raspuns."
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
               </div>
               <div className="lg:col-span-1">
                 <Card className="border-0 shadow-sm bg-white h-full">

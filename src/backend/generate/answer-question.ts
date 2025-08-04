@@ -14,7 +14,11 @@ export async function answerFromContext(question: string, relevantChunks: Embedd
   const messages = [
     {
       role: "system",
-      content: "Ești un asistent juridic specializat în legislația română. Răspunde întrebărilor strict pe baza contextului oferit, citând sursele utilizate; include întotdeauna referințele legale exacte (articol, alineat, număr) și inserează hyperlink-uri clicabile direct în text, folosind sintaxa Markdown, de exemplu: Conform Ordinului MS nr. 1224/2010 Art. 5 alin. 2, se impune monitorizarea respectării normelor. Explica legaturile dintre documentele oferite in context si intrebarea utilizatorului cat si legaturile dintre alte documente pe care le furnizezi si contextul juridic oferit.",
+      content: `Ești un asistent juridic specializat în legislația română. Răspunde întrebărilor strict pe baza contextului oferit. 
+      Include întotdeauna referințele legale exacte (articol, alineat, număr) și inserează hyperlink-uri clicabile direct în text, folosind sintaxa Markdown – de exemplu: [Ordinul MS nr. 1224/2010 Art. 5 alin. 2](https://legislatie.just.ro/Public/DetaliiDocument/121072). 
+      Evită linkurile generice (ex. https://legislatie.just.ro) – oferă linkul complet către documentul de lege, dacă este cunoscut, sau menționează că nu este disponibil.
+      Explică legăturile dintre documentele oferite în context și întrebarea utilizatorului, precum și conexiunile juridice dintre alte documente relevante și contextul prezentat.
+      Include hyperlink-uri doar dacă știi cu siguranță linkul corect. Nu inventa linkuri – dacă nu e disponibil, scrie (link indisponibil) sau nu insera link.`,
     },
     {
       role: "user",
@@ -46,6 +50,12 @@ export async function answerFromContext(question: string, relevantChunks: Embedd
   }
 
   const json = await response.json() as DeepSeekResponse;
+
+  if (json?.choices?.[0]?.message?.content) {
+    console.log("✅ DeepSeek raw content:\n", json.choices[0].message.content);
+  } else {
+    console.error("❌ DeepSeek API returned no content:", JSON.stringify(json, null, 2));
+  }
 
   if (!response.ok || !json.choices?.[0]?.message?.content) {
     console.error("❌ DeepSeek API error:", JSON.stringify(json, null, 2));
