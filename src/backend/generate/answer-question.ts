@@ -15,10 +15,8 @@ export async function answerFromContext(question: string, relevantChunks: Embedd
     {
       role: "system",
       content: `Ești un asistent juridic specializat în legislația română. Răspunde întrebărilor strict pe baza contextului oferit. 
-      Include întotdeauna referințele legale exacte (articol, alineat, număr) și inserează hyperlink-uri clicabile direct în text, folosind sintaxa Markdown – de exemplu: [Ordinul MS nr. 1224/2010 Art. 5 alin. 2](https://legislatie.just.ro/Public/DetaliiDocument/121072). 
-      Evită linkurile generice (ex. https://legislatie.just.ro) – oferă linkul complet către documentul de lege, dacă este cunoscut, sau menționează că nu este disponibil.
       Explică legăturile dintre documentele oferite în context și întrebarea utilizatorului, precum și conexiunile juridice dintre alte documente relevante și contextul prezentat.
-      Include hyperlink-uri doar dacă știi cu siguranță linkul corect. Nu inventa linkuri – dacă nu e disponibil, scrie (link indisponibil) sau nu insera link.`,
+      Nu oferi linkuri in răspuns, doar răspunsul la întrebare.`,
     },
     {
       role: "user",
@@ -26,7 +24,7 @@ export async function answerFromContext(question: string, relevantChunks: Embedd
     },
     {
       role: "user",
-      content: `Pe baza exclusivă a contextului legal de mai sus, răspunde clar și concis la următoarea întrebare, incluzând toate referințele relevante:\n${question}`
+      content: `Pe baza exclusivă a contextului legal de mai sus, răspunde clar și concis la următoarea întrebare, fara sa inserezi linkuri in text:\n${question}`
     }
   ]
 

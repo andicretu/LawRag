@@ -60,7 +60,6 @@ const handleSubmit = async () => {
   let token: string | null = null;
 
   try {
-    // Try to get token (may fail if not logged in)
     token = await getAccessTokenSilently();
     console.log("✅ Token received:", token);
   } catch (err) {
@@ -79,15 +78,14 @@ const handleSubmit = async () => {
     });
 
     if (!clarifyRes.ok) {
-      throw new Error("Clarify failed");
+      const text = await clarifyRes.text();
+      throw new Error(`Clarify failed: ${clarifyRes.status} – ${text}`);
     }
 
     const { clarifiedQuestion } = await clarifyRes.json();
     if (!clarifiedQuestion) {
       throw new Error("No clarified question returned");
     }
-
-    // Continue with search + answer steps...
 
     setStatus("Cautam documentele relevante");
 
@@ -99,7 +97,8 @@ const handleSubmit = async () => {
     });
 
     if (!searchRes.ok) {
-      throw new Error("Search failed");
+      const text = await searchRes.text();
+      throw new Error(`Search failed: ${searchRes.status} – ${text}`);
     }
 
     const { sources } = await searchRes.json();
@@ -118,7 +117,8 @@ const handleSubmit = async () => {
     });
 
     if (!answerRes.ok) {
-      throw new Error("Answer generation failed");
+      const text = await answerRes.text();
+      throw new Error(`Answer generation failed: ${answerRes.status} – ${text}`);
     }
 
     const { answer, sources: finalSources } = await answerRes.json();
@@ -130,9 +130,9 @@ const handleSubmit = async () => {
     setLinks(finalSources || []);
     setStatus("Raspunsul final este pregatit.");
 
-    // ✅ Step 4: Save to /api/chats — only if authenticated
+    // Step 4: Persist (if logged in)
     if (token && user?.sub) {
-      await fetch(`/api/chats?userId=${user.sub}`, {
+      const persistRes = await fetch(`/api/chats?userId=${user.sub}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -144,6 +144,11 @@ const handleSubmit = async () => {
           links: finalSources || [],
         }),
       });
+
+      if (!persistRes.ok) {
+        const text = await persistRes.text();
+        console.warn(`⚠️ Persist failed: ${persistRes.status} – ${text}`);
+      }
     }
   } catch (error) {
     console.error("❌ handleSubmit failed:", error);
@@ -152,7 +157,6 @@ const handleSubmit = async () => {
     setIsLoading(false);
   }
 };
-
 
  return (
     <div className="min-h-screen bg-slate-50">

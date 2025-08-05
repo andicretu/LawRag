@@ -71,13 +71,15 @@ export default function LegalQuestionPageLogged() {
   }, [chatHistory])
 
   const handleSubmit = async () => {
-    if (!question.trim()) return
+    if (!question.trim()) return;
 
-    setIsLoading(true)
-    setStatus("Ne asiguram ca am inteles intrebarea")
+    setIsLoading(true);
+    setStatus("Ne asiguram ca am inteles intrebarea");
 
     try {
-      const token = await getAccessTokenSilently()
+      const token = await getAccessTokenSilently();
+
+      // 🔍 Clarify step
       const clarifyRes = await fetch(`/api/clarify`, {
         method: 'POST',
         headers: {
@@ -85,42 +87,68 @@ export default function LegalQuestionPageLogged() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ question }),
-      })
-      const { clarifiedQuestion } = await clarifyRes.json()
+      });
 
-      setStatus('Cautam documentele relevante')
+      if (!clarifyRes.ok) {
+        const errorText = await clarifyRes.text();
+        throw new Error(`Eroare clarificare: ${clarifyRes.status} – ${errorText}`);
+      }
+
+      const { clarifiedQuestion } = await clarifyRes.json();
+
+      // 🔍 Search step
+      setStatus('Cautam documentele relevante');
+
       const searchRes = await fetch('/api/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ clarifiedQuestion }),
-      })
-      const { sources } = await searchRes.json()
+      });
 
-      setStatus('Pregatim raspunsul')
+      if (!searchRes.ok) {
+        const errorText = await searchRes.text();
+        throw new Error(`Eroare cautare: ${searchRes.status} – ${errorText}`);
+      }
+
+      const { sources } = await searchRes.json();
+
+      // 🔍 Answer step
+      setStatus('Pregatim raspunsul');
+
       const answerRes = await fetch('/api/answer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ clarifiedQuestion, chunks: sources }),
-      })
-      const { answer: aiAnswer } = await answerRes.json()
+      });
 
-      const newEntry: ChatEntry = { question, answer: aiAnswer, links: sources || [] }
-      setChatHistory(prev => [...prev, newEntry])
-      setStatus('Raspunsul final este pregatit.')
+      if (!answerRes.ok) {
+        const errorText = await answerRes.text();
+        throw new Error(`Eroare raspuns: ${answerRes.status} – ${errorText}`);
+      }
 
+      const { answer: aiAnswer } = await answerRes.json();
+
+      // 🧠 Save new entry
+      const newEntry: ChatEntry = { question, answer: aiAnswer, links: sources || [] };
+      setChatHistory(prev => [...prev, newEntry]);
+      setStatus('Raspunsul final este pregatit.');
+
+      // 💾 Persist to backend
       await fetch(`/api/chats?userId=${userId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(newEntry),
-      })
+      });
 
-      setQuestion("")
+      setQuestion("");
     } catch (error) {
-      setStatus(`A aparut o eroare: ${error}`)
+      setStatus(`A aparut o eroare: ${error}`);
+      console.error("❌ handleSubmit error:", error);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
+
 
   return (
     <div className="min-h-screen bg-slate-50">
