@@ -494,7 +494,7 @@ export default function LandingPage() {
 
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full p-6 relative">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto p-4 sm:p-6 relative">
             <button
               onClick={() => setShowForm(false)}
               className="absolute top-2 right-3 text-slate-500 hover:text-slate-800 text-sm"
