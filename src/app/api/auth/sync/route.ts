@@ -25,21 +25,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid token payload" }, { status: 400 });
     }
 
-    // Use pool.query() directly for simple queries
-    const { rows } = await pool.query(
-      "SELECT id FROM users WHERE auth0_id = $1",
-      [auth0_id]
+    const email = (payload as { email?: string }).email ?? null;
+
+    await pool.query(
+      `INSERT INTO users (auth0_id, email)
+       VALUES ($1, $2)
+       ON CONFLICT (auth0_id) DO UPDATE SET email = EXCLUDED.email`,
+      [auth0_id, email]
     );
 
-    if (rows.length === 0) {
-      await pool.query(
-        "INSERT INTO users (auth0_id) VALUES ($1)",
-        [auth0_id]
-      );
-      return NextResponse.json({ message: "Thank you for registering", registered: true });
-    }
-
-    return NextResponse.json({ message: "Welcome back", registered: false });
+    return NextResponse.json({ message: "User synced" });
     
   } catch (err) {
     console.error("Sync error:", err);
