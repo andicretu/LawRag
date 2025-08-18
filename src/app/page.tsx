@@ -20,6 +20,7 @@ import {
   Phone,
   Download,
 } from "lucide-react"
+import { gaEvent } from "@/lib/ga"
 
 export default function LandingPage() {
 
@@ -93,7 +94,10 @@ export default function LandingPage() {
                 </div>
               </div>
               <Button
-                onClick={() => setIsChatOpen(true)}
+                onClick={() => {
+                  setIsChatOpen(true)
+                  gaEvent("widget_open", { location: "home_widget_card" })
+                }}
                 className="bg-white text-blue-600 hover:bg-gray-100 h-7 px-2 text-xs font-medium"
               >
                 Întreabă
