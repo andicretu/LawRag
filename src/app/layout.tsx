@@ -4,7 +4,7 @@ import "./globals.css"
 import { AuthProvider } from "@/components/auth/AuthProvider"
 import AnalyticsProvider from "@/components/analiticsProvider"
 import ConsentBanner from "@/components/consentBanner"
-import DevConsent from "@/components/devConsent"
+import { Suspense } from "react"
 
 
 
@@ -50,9 +50,10 @@ export default function RootLayout({
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         {/* GA4 loader + SPA pageviews */}
-        <AnalyticsProvider />
-          {process.env.NODE_ENV !== "production" ? <DevConsent /> : null}
-        <AuthProvider>{children}</AuthProvider>
+          <Suspense fallback={null}>
+            <AnalyticsProvider />
+          </Suspense>
+          <AuthProvider>{children}</AuthProvider>
         <ConsentBanner />
       </body>
     </html>
