@@ -1,0 +1,121 @@
+{
+  "site": {
+    "title": "Cabinet Juridic Profesional",
+    "description": "Consultanță juridică de încredere cu peste 20 de ani de experiență"
+  },
+  "header": {
+    "logo": "Avocat Radu Rosca",
+    "navigation": [
+      { "label": "Acasă", "href": "#home" },
+      { "label": "Despre", "href": "#about" },
+      { "label": "Servicii", "href": "#services" },
+      { "label": "Contact", "href": "#contact" }
+    ],
+    "ctaButton": "Consultație"
+  },
+  "hero": {
+    "title": "Protejăm Drepturile Dumneavoastră",
+    "subtitle": "Cabinet juridic cu experiență de peste 20 de ani în drept civil, comercial și penal",
+    "description": "Oferim consultanță juridică profesională și reprezentare în instanță pentru persoane fizice și juridice.",
+    "primaryButton": "Programează Consultația",
+    "secondaryButton": "Vezi Serviciile"
+  },
+  "about": {
+    "title": "Despre Noi",
+    "subtitle": "Experiență și Profesionalism",
+    "description": "Cu o experiență vastă în domeniul juridic, echipa noastră oferă servicii complete de consultanță și reprezentare juridică. Ne mândrim cu o rată de succes de peste 95% în cazurile pe care le gestionăm.",
+    "stats": [
+      { "number": "20+", "label": "Ani Experiență" },
+      { "number": "1000+", "label": "Cazuri Rezolvate" },
+      { "number": "95%", "label": "Rata de Succes" },
+      { "number": "24/7", "label": "Suport Client" }
+    ],
+    "features": [
+      "Consultanță juridică specializată",
+      "Reprezentare în instanță",
+      "Redactare acte juridice",
+      "Suport permanent pentru clienți"
+    ]
+  },
+  "services": {
+    "title": "Serviciile Noastre",
+    "subtitle": "Domenii de Specializare",
+    "items": [
+      {
+        "title": "Drept Civil",
+        "description": "Contracte, proprietăți, succesiuni, răspundere civilă și litigii civile.",
+        "features": ["Contracte civile", "Drept imobiliar", "Succesiuni", "Litigii civile"]
+      },
+      {
+        "title": "Drept Comercial",
+        "description": "Înființare societăți, contracte comerciale, fuziuni și achiziții.",
+        "features": ["Înființare societăți", "Contracte comerciale", "M&A", "Restructurări"]
+      },
+      {
+        "title": "Drept Penal",
+        "description": "Apărare penală, consultanță în materie penală și reprezentare în instanță.",
+        "features": ["Apărare penală", "Consultanță preventivă", "Reprezentare instanță", "Proceduri penale"]
+      },
+      {
+        "title": "Drept de Familie",
+        "description": "Divorț, custodia copiilor, pensie alimentară și alte aspecte familiale.",
+        "features": ["Proceduri divorț", "Custodia copiilor", "Pensie alimentară", "Regim matrimonial"]
+      },
+      {
+        "title": "Drept Muncii",
+        "description": "Contracte de muncă, litigii cu angajatorul, drepturi salariale.",
+        "features": ["Contracte muncă", "Litigii angajator", "Drepturi salariale", "Concedieri"]
+      },
+      {
+        "title": "Consultanță Juridică",
+        "description": "Consultanță generală, audit juridic și suport legal permanent.",
+        "features": ["Consultanță generală", "Audit juridic", "Due diligence", "Suport legal"]
+      }
+    ]
+  },
+  "testimonials": {
+    "title": "Ce Spun Clienții Noștri",
+    "items": [
+      {
+        "text": "Profesionalism exemplar și rezultate excelente. Recomand cu încredere serviciile acestui cabinet.",
+        "author": "Maria Popescu",
+        "role": "Antreprenor"
+      },
+      {
+        "text": "M-au ajutat să rezolv o problemă juridică complexă foarte eficient și profesional.",
+        "author": "Ion Georgescu",
+        "role": "Manager"
+      },
+      {
+        "text": "Consultanță clară, onorarii corecte și rezultate peste așteptări.",
+        "author": "Ana Dumitrescu",
+        "role": "Medic"
+      }
+    ]
+  },
+  "contact": {
+    "title": "Contactați-ne",
+    "subtitle": "Să Discutăm Despre Cazul Dumneavoastră",
+    "info": {
+      "address": "Str. Juridică nr. 123, Sector 1, București",
+      "phone": "+40 721 123 456",
+      "email": "contact@avocat-pro.ro",
+      "schedule": "Luni - Vineri: 09:00 - 18:00"
+    },
+    "form": {
+      "nameLabel": "Nume Complet",
+      "emailLabel": "Adresa de Email",
+      "phoneLabel": "Număr de Telefon",
+      "messageLabel": "Mesajul Dumneavoastră",
+      "submitButton": "Trimite Mesajul"
+    }
+  },
+  "footer": {
+    "copyright": "© 2024 Cabinet Juridic Profesional. Toate drepturile rezervate.",
+    "links": [
+      { "label": "Politica de Confidențialitate", "href": "#privacy" },
+      { "label": "Termeni și Condiții", "href": "#terms" },
+      { "label": "GDPR", "href": "#gdpr" }
+    ]
+  }
+}

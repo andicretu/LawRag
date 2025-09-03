@@ -24,7 +24,7 @@
     "@/*": ["./src/*"]
   },
   "typeRoots": ["./node_modules/@types", "./src/types"],
-  "types": []
+  "types": ["styled-jsx", "node"]
 },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "**/*.d.ts", ".next/types/**/*.ts"],
   "exclude": ["node_modules"]

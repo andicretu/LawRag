@@ -1,0 +1,127 @@
+{
+  "lawyer": {
+    "name": "Avocat Radu Rosca",
+    "title": "Avocat Radu Rosca, Drept civil & comercial",
+    "subtitle": "Consultanță juridică profesională în București cu peste 15 ani de experiență",
+    "photo": "/placeholder.svg?height=200&width=200",
+    "experience": [
+      "Peste 15 ani de experiență în drept civil și comercial",
+      "Membru al Baroului București din 2008",
+      "Specializare în litigii complexe și consultanță preventivă"
+    ],
+    "accreditations": ["Baroul București", "UNBR - Uniunea Națională a Barourilor", "Certificat mediator autorizat"]
+  },
+  "hero": {
+    "headline": "Avocat Radu Rosca",
+    "subheadline": "Drept civil & comercial",
+    "description": "Consultanță juridică profesională în București cu peste 15 ani de experiență",
+    "primaryCta": "Programează consultanță",
+    "secondaryCta": "Vezi servicii"
+  },
+  "practiceAreas": [
+    {
+      "title": "Drept Civil",
+      "description": "Contracte, proprietăți, succesiuni și răspundere civilă",
+      "details": "Redactare contracte, litigii civile, consultanță proprietăți"
+    },
+    {
+      "title": "Drept Comercial",
+      "description": "Înființare societăți, contracte comerciale și litigii",
+      "details": "Consultanță business, fuziuni și achiziții, restructurări"
+    },
+    {
+      "title": "Drept Muncii",
+      "description": "Contracte de muncă, concedieri și drepturi salariale",
+      "details": "Litigii cu angajatorul, consultanță HR, conformitate"
+    },
+    {
+      "title": "Contencios",
+      "description": "Reprezentare în instanță și proceduri judiciare",
+      "details": "Strategii procesuale, apeluri, executări silite"
+    },
+    {
+      "title": "Drept Penal Economic",
+      "description": "Apărare în cauze penale economice și fiscale",
+      "details": "Evaziune fiscală, spălare de bani, corupție economică"
+    },
+    {
+      "title": "GDPR & Protecția Datelor",
+      "description": "Conformitate GDPR și protecția datelor personale",
+      "details": "Audit GDPR, politici de confidențialitate, notificări"
+    }
+  ],
+  "whyUs": [
+    {
+      "title": "Răspuns în 24h",
+      "description": "Răspundem rapid la toate solicitările și oferim consultanță urgentă"
+    },
+    {
+      "title": "Onorarii transparente",
+      "description": "Tarife clare, fără costuri ascunse. Estimare gratuită pentru fiecare caz"
+    },
+    {
+      "title": "Limbaj clar",
+      "description": "Explicăm juridicul în termeni simpli, fără jargon complicat"
+    },
+    {
+      "title": "Experiență dovedită",
+      "description": "Peste 500 de cazuri rezolvate cu succes în ultimii 15 ani"
+    }
+  ],
+  "testimonials": [
+    {
+      "text": "Profesionalism exemplar și rezultate excelente. Recomand cu încredere!",
+      "author": "Maria P."
+    },
+    {
+      "text": "M-au ajutat să rezolv o problemă complexă de drept comercial foarte eficient.",
+      "author": "Alexandru D."
+    },
+    {
+      "text": "Consultanță clară și onorarii corecte. Exact ce căutam!",
+      "author": "Elena M."
+    }
+  ],
+  "faq": [
+    {
+      "question": "Cât costă o consultanță juridică?",
+      "answer": "Prima consultanță de 30 de minute este gratuită. Pentru consultanțele ulterioare, tariful este de 200 lei/oră. Oferim și pachete fixe pentru anumite servicii."
+    },
+    {
+      "question": "În cât timp primiți răspuns?",
+      "answer": "Ne angajăm să răspundem în maximum 24 de ore la toate solicitările. Pentru urgențe, suntem disponibili și în weekend."
+    },
+    {
+      "question": "Vă deplasați la client?",
+      "answer": "Da, pentru cazuri complexe sau clienți corporativi ne deplasăm la sediul dumneavoastră în București și împrejurimi."
+    },
+    {
+      "question": "Acceptați plata în rate?",
+      "answer": "Pentru cazuri de lungă durată, putem negocia modalități de plată flexibile, inclusiv în rate lunare."
+    },
+    {
+      "question": "Oferiți consultanță online?",
+      "answer": "Da, oferim consultanță prin videoconferință pentru clienții care nu se pot deplasa la cabinet."
+    },
+    {
+      "question": "Ce documente trebuie să aduc la consultanță?",
+      "answer": "Toate documentele relevante pentru cazul dumneavoastră: contracte, corespondență, hotărâri judecătorești, etc. Vă vom ghida specific după prima discuție."
+    }
+  ],
+  "contact": {
+    "address": "Str. Exemplu nr. 123, Sector 1, București",
+    "phone": "0721 XXX XXX",
+    "email": "contact@avocat-exemplu.ro",
+    "schedule": "Luni - Vineri: 09:00 - 18:00",
+    "mapEmbed": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2848.8187!2d26.1025!3d44.4268!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zNDTCsDI1JzM2LjUiTiAyNsKwMDYnMDkuMCJF!5e0!3m2!1sen!2sro!4v1234567890"
+  },
+  "footer": {
+    "copyright": "© 2024 Avocat Exemplu. Toate drepturile rezervate.",
+    "links": [
+      { "text": "Politica GDPR", "url": "#gdpr" },
+      { "text": "Politica Cookies", "url": "#cookies" },
+      { "text": "Termeni și condiții", "url": "#terms" }
+    ],
+    "social": [{ "platform": "LinkedIn", "url": "#linkedin" }, { "platform": "Facebook", "url": "#facebook" }]
+  }
+}

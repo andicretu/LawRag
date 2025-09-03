@@ -1,0 +1,237 @@
+{
+  "site": {
+    "title": "Cabinet Juridic Profesional",
+    "description": "Consultanță juridică de încredere cu peste 20 de ani de experiență"
+  },
+  "theme": {
+    "colors": {
+      "primary": {
+        "50":  "rgb(250, 247, 255)",
+        "100": "rgb(243, 238, 255)",
+        "200": "rgb(230, 223, 255)",
+        "300": "rgb(212, 200, 252)",
+        "400": "rgb(183, 168, 238)",
+        "500": "rgb(148, 126, 209)",
+        "600": "rgb(120, 94, 186)",
+        "700": "rgb(96, 72, 150)",
+        "800": "rgb(73, 53, 115)",
+        "900": "rgb(53, 39, 84)"
+      },
+      "secondary": {
+        "50":  "rgb(245, 246, 250)",
+        "100": "rgb(232, 236, 247)",
+        "200": "rgb(210, 216, 236)",
+        "300": "rgb(186, 193, 223)",
+        "400": "rgb(148, 156, 198)",
+        "500": "rgb(116, 125, 173)",
+        "600": "rgb(90, 98, 140)",
+        "700": "rgb(68, 74, 110)",
+        "800": "rgb(49, 53, 80)",
+        "900": "rgb(34, 37, 56)"
+      },
+      "accent": {
+        "emerald": "rgb(16, 185, 129)",
+        "red":     "rgb(239, 68, 68)",
+        "blue":    "rgb(59, 130, 246)"
+      }
+    },
+    "gradients": {
+      "primary":       "from-violet-700 to-indigo-800",
+      "primaryHover":  "from-violet-800 to-indigo-900",
+      "secondary":     "from-indigo-900 to-slate-900",
+      "secondaryHover":"from-violet-800 to-indigo-900",
+      "background":    "from-zinc-50 via-white to-violet-50",
+      "hero":          "from-indigo-900 via-indigo-800 to-indigo-900",
+      "card":          "from-white to-zinc-50",
+      "cardHover":     "from-violet-500/5 to-indigo-700/5"
+    },
+    "shadows": {
+      "sm": "shadow-sm",
+      "md": "shadow-md",
+      "lg": "shadow-lg",
+      "xl": "shadow-xl",
+      "2xl": "shadow-2xl",
+      "amber": "shadow-violet-500/20"
+    },
+    "animations": {
+      "hover": "transition-all duration-300 transform hover:scale-105",
+      "hoverSm": "transition-all duration-300 transform hover:scale-110",
+      "fade": "transition-opacity duration-300",
+      "colors": "transition-colors duration-300"
+    }
+  },
+  "header": {
+    "logo": "Avocat Pro",
+    "navigation": [
+      { "label": "Acasă", "href": "#home" },
+      { "label": "Despre", "href": "#about" },
+      { "label": "Servicii", "href": "#services" },
+      { "label": "Contact", "href": "#contact" }
+    ],
+    "ctaButton": "Intrebati asistentul virtual"
+  },
+
+
+  "hero": {
+    "title": "Avocat Radu Rosca",
+    "subtitle": "Cabinet juridic cu experiență de peste 20 de ani în drept civil, comercial și penal",
+    "description": "Oferim consultanță juridică profesională și reprezentare în instanță pentru persoane fizice și juridice.",
+    "primaryButton": "Programează Consultația",
+    "secondaryButton": "Vezi Serviciile"
+  },
+  "lawyer": {
+    "name": "Av. Radu Rosca",
+    "title": "Avocat Principal & Fondator",
+    "photo": "/placeholder.svg?height=400&width=400&text=Av.+Maria+Popescu",
+    "experience": "20+ ani experiență",
+    "specialization": "Drept Civil & Comercial",
+    "description": "Cu o carieră de peste două decenii în domeniul juridic, Av. Radu Rosca a reprezentat cu succes sute de clienți în cazuri complexe de drept civil și comercial. Absolventă a Facultății de Drept din București, cu specializări în drept european și arbitraj comercial.",
+    "credentials": [
+      "Licențiată în Drept - Universitatea București (2003)",
+      "Master în Drept European - Sorbonne Paris (2005)",
+      "Certificat Arbitru Comercial - Camera de Comerț (2010)",
+      "Membru Baroul București din 2004"
+    ],
+    "achievements": [
+      "500+ cazuri câștigate",
+      "95% rată de succes",
+      "Recunoscută în Legal 500",
+      "Arbitru acreditat CCIR"
+    ]
+  },
+  "about": {
+    "title": "Despre Noi",
+    "subtitle": "Experiență și Profesionalism",
+    "description": "Cu o experiență vastă în domeniul juridic, echipa noastră oferă servicii complete de consultanță și reprezentare juridică. Ne mândrim cu o rată de succes de peste 95% în cazurile pe care le gestionăm.",
+    "stats": [
+      { "number": "20+", "label": "Ani Experiență" },
+      { "number": "1000+", "label": "Cazuri Rezolvate" },
+      { "number": "95%", "label": "Rata de Succes" },
+      { "number": "24/7", "label": "Suport Client" }
+    ],
+    "features": [
+      "Consultanță juridică specializată",
+      "Reprezentare în instanță",
+      "Redactare acte juridice",
+      "Suport permanent pentru clienți"
+    ]
+  },
+  "services": {
+    "title": "Serviciile Noastre",
+    "subtitle": "Domenii de Specializare",
+    "items": [
+      {
+        "title": "Drept Civil",
+        "description": "Contracte, proprietăți, succesiuni, răspundere civilă și litigii civile.",
+        "features": ["Contracte civile", "Drept imobiliar", "Succesiuni", "Litigii civile"],
+        "icon": "FileText"
+      },
+      {
+        "title": "Drept Comercial",
+        "description": "Înființare societăți, contracte comerciale, fuziuni și achiziții.",
+        "features": ["Înființare societăți", "Contracte comerciale", "M&A", "Restructurări"],
+        "icon": "Building"
+      },
+      {
+        "title": "Drept Penal",
+        "description": "Apărare penală, consultanță în materie penală și reprezentare în instanță.",
+        "features": ["Apărare penală", "Consultanță preventivă", "Reprezentare instanță", "Proceduri penale"],
+        "icon": "Shield"
+      },
+      {
+        "title": "Drept de Familie",
+        "description": "Divorț, custodia copiilor, pensie alimentară și alte aspecte familiale.",
+        "features": ["Proceduri divorț", "Custodia copiilor", "Pensie alimentară", "Regim matrimonial"],
+        "icon": "Heart"
+      },
+      {
+        "title": "Drept Muncii",
+        "description": "Contracte de muncă, litigii cu angajatorul, drepturi salariale.",
+        "features": ["Contracte muncă", "Litigii angajator", "Drepturi salariale", "Concedieri"],
+        "icon": "Users"
+      },
+      {
+        "title": "Consultanță Juridică",
+        "description": "Consultanță generală, audit juridic și suport legal permanent.",
+        "features": ["Consultanță generală", "Audit juridic", "Due diligence", "Suport legal"],
+        "icon": "Briefcase"
+      }
+    ]
+  },
+  "testimonials": {
+    "title": "Ce Spun Clienții Noștri",
+    "items": [
+      {
+        "text": "Profesionalism exemplar și rezultate excelente. Recomand cu încredere serviciile acestui cabinet.",
+        "author": "Maria Popescu",
+        "role": "Antreprenor"
+      },
+      {
+        "text": "M-au ajutat să rezolv o problemă juridică complexă foarte eficient și profesional.",
+        "author": "Ion Georgescu",
+        "role": "Manager"
+      },
+      {
+        "text": "Consultanță clară, onorarii corecte și rezultate peste așteptări.",
+        "author": "Ana Dumitrescu",
+        "role": "Medic"
+      }
+    ]
+  },
+  "contact": {
+    "title": "Contactați-ne",
+    "subtitle": "Să Discutăm Despre Cazul Dumneavoastră",
+    "info": {
+      "address": "Str. Juridică nr. 123, Sector 1, București",
+      "phone": "+40 721 123 456",
+      "email": "contact@avocat-pro.ro",
+      "schedule": "Luni - Vineri: 09:00 - 18:00"
+    },
+    "form": {
+      "nameLabel": "Nume Complet",
+      "emailLabel": "Adresa de Email",
+      "phoneLabel": "Număr de Telefon",
+      "messageLabel": "Mesajul Dumneavoastră",
+      "submitButton": "Trimite Mesajul"
+    }
+  },
+  "footer": {
+    "copyright": "© 2024 Cabinet Juridic Profesional. Toate drepturile rezervate.",
+    "links": [
+      { "label": "Politica de Confidențialitate", "href": "#privacy" },
+      { "label": "Termeni și Condiții", "href": "#terms" },
+      { "label": "GDPR", "href": "#gdpr" }
+    ]
+  },
+  "chat": {
+    "widget": {
+      "title": "Asistent Legal",
+      "subtitle": "Aveți întrebări juridice?",
+      "description": "Obțineți consultanță juridică rapidă și profesională",
+      "buttonText": "Întreabă",
+      "status": "Online",
+      "poweredBy": "Powered by StieLegi.ro"
+    },
+    "interface": {
+      "title": "Asistent Legal",
+      "subtitle": "Powered by StieLegi.ro",
+      "questionPlaceholder": "Descrieți problema juridică cu care vă confruntați...",
+      "questionTitle": "Cu ce vă putem ajuta?",
+      "answerTitle": "Răspuns:",
+      "sourcesTitle": "Surse relevante:",
+      "submitButton": "Trimite",
+      "processingButton": "Procesăm...",
+      "openDocument": "Deschide document",
+      "viewSection": "Vezi secțiunea",
+      "noSources": "Sursele vor fi afișate aici, după procesarea întrebării.",
+      "noAnswer": "Nu există niciun răspuns."
+    },
+    "status": {
+      "ready": "Pregatit",
+      "understanding": "Ne asiguram ca am inteles intrebarea",
+      "searching": "Cautam documentele relevante",
+      "preparing": "Pregatim raspunsul",
+      "complete": "Raspunsul final este pregatit."
+    }
+  }
+}
