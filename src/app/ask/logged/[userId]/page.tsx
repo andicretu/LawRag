@@ -16,7 +16,42 @@ interface ChatEntry {
   links: { title: string; url: string; text: string }[]
 }
 
+const DEFAULT_ASK = [
+  { id: "scope",    q: "Care este scopul întrebării?" },
+  { id: "parties",  q: "Cine sunt părțile implicate?" },
+  { id: "actions",  q: "Ce acțiuni sunt avute în vedere?" },
+  { id: "timeframe",q: "Care este intervalul de timp relevant?" },
+] as const;
+
+
+type ClarifyOut = {
+  needs_more_info: boolean;
+  ask?: Array<{ id: "scope"|"parties"|"actions"|"timeframe"; q: string }>;
+  clarified_question?: string;
+  hints?: { scope?: string; parties?: string; actions?: string; timeframe?: { from?: string; to?: string } };
+  confidence: number;
+};
+
+type ClarifyAnswers = { scope?: string; parties?: string; actions?: string; timeframe?: { from?: string; to?: string } };
+
+
+
+function buildClarifiedQuestion(original: string, a: ClarifyAnswers) {
+  const bits:string[] = [];
+  if (a.scope) bits.push(`scop: ${a.scope}`);
+  if (a.parties) bits.push(`părți: ${a.parties}`);
+  if (a.actions) bits.push(`acțiuni: ${a.actions}`);
+  if (a.timeframe?.from || a.timeframe?.to) {
+    bits.push(`interval: ${a.timeframe?.from ?? "?"}–${a.timeframe?.to ?? "?"}`);
+  }
+  return bits.length ? `${original}\nContext: ${bits.join("; ")}` : original;
+}
+
 export default function LegalQuestionPageLogged() {
+
+  const [clarify, setClarify] = useState<ClarifyOut | null>(null);
+  const [clarifyAns, setClarifyAns] = useState<ClarifyAnswers>({});
+  const [phase, setPhase] = useState<"idle"|"clarify"|"search"|"answer">("idle");
   const params = useParams()
   const userId = params?.userId as string
 
@@ -70,77 +105,87 @@ export default function LegalQuestionPageLogged() {
     }
   }, [chatHistory])
 
-  const handleSubmit = async () => {
-    if (!question.trim()) return;
+  useEffect(() => {
+    if (phase === "clarify" && clarify) {
+      const el = document.getElementById("clarify-panel");
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [phase, clarify]);
 
-    setIsLoading(true);
-    setStatus("Ne asiguram ca am inteles intrebarea");
+  async function proceedFlow(clarifiedQuestion: string, token?: string) {
+    // 🔍 Search
+    setStatus('Cautam documentele relevante');
+    const searchRes = await fetch('/api/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clarifiedQuestion }),
+    });
+    if (!searchRes.ok) throw new Error(`Eroare cautare: ${await searchRes.text()}`);
+    const { sources } = await searchRes.json();
 
-    try {
-      const token = await getAccessTokenSilently();
+    // 🧠 Answer
+    setStatus('Pregatim raspunsul');
+    const answerRes = await fetch('/api/answer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clarifiedQuestion, chunks: sources }),
+    });
+    if (!answerRes.ok) throw new Error(`Eroare raspuns: ${await answerRes.text()}`);
+    const { answer: aiAnswer } = await answerRes.json();
 
-      // 🔍 Clarify step
-      const clarifyRes = await fetch(`/api/clarify`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ question }),
-      });
+    const newEntry = { question, answer: aiAnswer, links: sources || [] };
+    setChatHistory(prev => [...prev, newEntry]);
+    setStatus('Raspunsul final este pregatit.');
 
-      if (!clarifyRes.ok) {
-        const errorText = await clarifyRes.text();
-        throw new Error(`Eroare clarificare: ${clarifyRes.status} – ${errorText}`);
-      }
-
-      const { clarifiedQuestion } = await clarifyRes.json();
-
-      // 🔍 Search step
-      setStatus('Cautam documentele relevante');
-
-      const searchRes = await fetch('/api/search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clarifiedQuestion }),
-      });
-
-      if (!searchRes.ok) {
-        const errorText = await searchRes.text();
-        throw new Error(`Eroare cautare: ${searchRes.status} – ${errorText}`);
-      }
-
-      const { sources } = await searchRes.json();
-
-      // 🔍 Answer step
-      setStatus('Pregatim raspunsul');
-
-      const answerRes = await fetch('/api/answer', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clarifiedQuestion, chunks: sources }),
-      });
-
-      if (!answerRes.ok) {
-        const errorText = await answerRes.text();
-        throw new Error(`Eroare raspuns: ${answerRes.status} – ${errorText}`);
-      }
-
-      const { answer: aiAnswer } = await answerRes.json();
-
-      // 🧠 Save new entry
-      const newEntry: ChatEntry = { question, answer: aiAnswer, links: sources || [] };
-      setChatHistory(prev => [...prev, newEntry]);
-      setStatus('Raspunsul final este pregatit.');
-
-      // 💾 Persist to backend
+    if (token) {
       await fetch(`/api/chats?userId=${userId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(newEntry),
       });
+    }
+    setQuestion("");
+  }
 
-      setQuestion("");
+  const handleSubmit = async () => {
+    if (!question.trim()) return;
+    setIsLoading(true);
+    setStatus("Ne asiguram ca am inteles intrebarea");
+    try {
+      const token = await getAccessTokenSilently();
+      const clarifyRes = await fetch(`/api/clarify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ originalQuestion: question }),
+      });
+      if (!clarifyRes.ok) throw new Error(`Eroare clarificare: ${await clarifyRes.text()}`);
+      
+      const out: ClarifyOut = await clarifyRes.json();
+      console.log("UI ClarifyOut:", out, out?.needs_more_info, out?.ask?.length);
+
+      /*if (out?.needs_more_info === true && Array.isArray(out.ask) && out.ask.length > 0) {
+        setClarify(out);
+        setPhase("clarify");
+        console.log("Phase set to:", "clarify");
+        setStatus("Avem nevoie de câteva clarificări.");
+        setIsLoading(false);
+        return; // așteptăm input-ul din UI
+      }*/
+
+      setPhase("clarify");
+      setClarify({
+        needs_more_info: true,
+        ask: DEFAULT_ASK.slice(0, 3),
+        clarified_question: "",
+        hints: {},
+        confidence: 0.2,
+      });
+      setIsLoading(false);
+      return; // așteptăm input-ul din UI
+
+      setPhase("search");
+      const clarified = out.clarified_question?.trim() || question;
+      await proceedFlow(clarified, token);
     } catch (error) {
       setStatus(`A aparut o eroare: ${error}`);
       console.error("❌ handleSubmit error:", error);
@@ -149,6 +194,22 @@ export default function LegalQuestionPageLogged() {
     }
   };
 
+  async function handleClarifyContinue() {
+    try {
+      setIsLoading(true);
+      setPhase("search");
+      const token = await getAccessTokenSilently();
+      const clarified = buildClarifiedQuestion(question, clarifyAns);
+      await proceedFlow(clarified, token);
+      setClarify(null);
+      setClarifyAns({});
+      setPhase("idle");
+    } catch (e) {
+      setStatus(`Eroare: ${e}`);
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -280,6 +341,35 @@ export default function LegalQuestionPageLogged() {
             </div>
           </div>
         ))}
+
+        {phase === "clarify" && (
+          <Card id="clarify-panel" className="border-0 shadow-sm bg-white">
+            <CardHeader><CardTitle className="text-base font-semibold text-slate-900">Clarifică întrebarea</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              {(clarify?.ask?.length ? clarify.ask : DEFAULT_ASK.slice(0,3)).map((q, idx) => (
+                <div key={q.id} className="space-y-1">
+                  <label className="text-sm font-medium text-slate-800">{idx+1}. {q.q}</label>
+                  {q.id === "timeframe" ? (
+                    <div className="flex gap-2">
+                      <input type="date" className="border rounded px-2 py-1 text-sm"
+                        onChange={(e)=>setClarifyAns(a=>({ ...a, timeframe:{ ...(a.timeframe||{}), from:e.target.value||undefined }}))}/>
+                      <input type="date" className="border rounded px-2 py-1 text-sm"
+                        onChange={(e)=>setClarifyAns(a=>({ ...a, timeframe:{ ...(a.timeframe||{}), to:e.target.value||undefined }}))}/>
+                    </div>
+                  ) : (
+                    <input type="text" className="w-full border rounded px-2 py-1 text-sm"
+                      onChange={(e)=>setClarifyAns(a => ({ ...a, [q.id]: (e.target.value || undefined) } as ClarifyAnswers))}/>
+                  )}
+                </div>
+              ))}
+
+              <div className="flex justify-end gap-2">
+                <Button onClick={handleClarifyContinue} disabled={isLoading}>Continuă</Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
 
         <div ref={endOfPageRef}>
           <Card className="border-0 shadow-sm bg-white mt-6">

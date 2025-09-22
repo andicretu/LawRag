@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     console.log("📦 Clarify Request Body!!!!!!!!:", body);
-    const originalQuestion = body.question;
+    const originalQuestion = body.originalQuestion ?? body.question;
     const rawToken = body.token;
 
     if (!originalQuestion || typeof originalQuestion !== "string") {
@@ -38,12 +38,15 @@ export async function POST(req: NextRequest) {
     }
 
     // Clarify question using context if available
-    const clarifiedQuestion = await clarifyQuestion(originalQuestion, summary);
-    console.log("✅ Clarified question:", clarifiedQuestion);
+    const out = await clarifyQuestion(originalQuestion, summary);
+    console.log("✅ Clarified question:", out);
 
-    return NextResponse.json({ clarifiedQuestion });
+    return NextResponse.json({ out });
   } catch (err) {
     console.error("❌ API error in /api/clarify:", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { needs_more_info: false, clarified_question: " ", confidence: 0 },
+      { status: 200 }
+    );
   }
 }

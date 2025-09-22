@@ -1,55 +1,78 @@
-import fetch from "node-fetch";
-import dotenv from "dotenv";
-import path from "path";
+type ClarifyOut = {
+  needs_more_info: boolean;
+  ask?: Array<{ id: "scope"|"parties"|"actions"|"timeframe"; q: string }>;
+  clarified_question?: string;
+  hints?: { scope?: string; parties?: string; actions?: string; timeframe?: { from?: string; to?: string } };
+  confidence: number;
+};
 
-dotenv.config({ path: path.resolve(__dirname, "../../.env") });
+function sanitizeLLMJson(raw: string): string {
+  if (!raw) return "";
+  let s = raw.trim();
 
-const MODEL = "deepseek-chat";
+  // 1) taie code fences ``` / ```json
+  if (s.startsWith("```")) {
+    s = s.replace(/^```(?:json)?\s*/i, "").replace(/```$/i, "").trim();
+  }
 
-export async function clarifyQuestion(originalQuestion: string, summary: string): Promise<string> {
+  // 2) extrage doar blocul { ... } cel mai exterior
+  const first = s.indexOf("{");
+  const last  = s.lastIndexOf("}");
+  if (first !== -1 && last > first) {
+    s = s.slice(first, last + 1).trim();
+  }
+  return s;
+}
+
+export async function clarifyQuestion(originalQuestion: string, summary: string): Promise<ClarifyOut> {
   const messages = [
     {
       role: "system",
       content:
-        "Ești un asistentul unui motor de cautare semantica. Reformulează întrebările vagi într-o formă clară, specifică și completă, folosind un limbaj juridic formal. Clarifica semantic si juridic termenii intrebarii. Nu răspunde la întrebare, nu complica intrebarea, nu oferi observatii sau explicatii despre ce ai facut, nu oferi linkuri sau referinte externe, doar clarifică formularea, intr-un mod care sa ajute cautarea documentelor relevante in etapa urmatoare"
+        `Ești un asistent de clarificare. Scop: stabilește dacă lipsesc informații critice:
+         1) scop, 2) părți, 3) acțiuni, 4) interval.
+         Dacă lipsesc → MAX 3 întrebări (id: scope|parties|actions|timeframe).
+         Dacă NU lipsesc → "clarified_question" (o frază).
+         Răspunde STRICT JSON cu cheile: 
+         {"needs_more_info": boolean, "ask": [{"id":"scope","q":"..."}], "clarified_question":"...", 
+          "hints":{"scope":"...","parties":"...","actions":"...","timeframe":{"from":"YYYY-MM-DD","to":"YYYY-MM-DD"}}, "confidence":0.0 }`
     },
     {
       role: "user",
       content: summary
-        ? `Rezumatul conversației până acum:\n${summary}\n\nÎntrebare originală:\n${originalQuestion}`
-        : `Întrebare originală:\n${originalQuestion}`
+        ? `Rezumat:\n${summary}\n\nÎntrebare:\n${originalQuestion}`
+        : `Întrebare:\n${originalQuestion}`
     },
-    {
-      role: "user",
-      content: "Care este versiunea clarificată a întrebării de mai sus?"
-    }
   ];
 
-  const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
+  const resp = await fetch("https://api.deepseek.com/v1/chat/completions", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${process.env.DEEPSEEK_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      messages,
-      temperature: 0.2
-    })
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.DEEPSEEK_API_KEY}` },
+    body: JSON.stringify({ model: "deepseek-chat", messages, temperature: 0.1 })
   });
 
-  interface DeepSeekResponse {
-    choices: Array<{
-      message: { content: string };
-    }>;
+  // fallback sigur dacă API-ul eșuează
+  if (!resp.ok) {
+    console.error("DeepSeek not ok");
+    return { needs_more_info: false, clarified_question: originalQuestion, confidence: 0 };
   }
 
-  const json = await response.json() as DeepSeekResponse;
+  const data = await resp.json() as { choices?: Array<{ message?: { content?: string } }> };
+  const content = data?.choices?.[0]?.message?.content ?? "";
+  const cleaned = sanitizeLLMJson(content);
 
-  if (!response.ok || !json.choices?.[0]?.message?.content) {
-    console.error("❌ DeepSeek clarification error:", JSON.stringify(json, null, 2));
-    throw new Error("Failed to clarify question.");
+  try {
+    const out = JSON.parse(cleaned) as ClarifyOut;
+
+    // sanity checks minimale
+    if (typeof out.needs_more_info !== "boolean") throw new Error("missing needs_more_info");
+    if (out.needs_more_info && (!out.ask || out.ask.length === 0)) {
+      // dacă zice că are nevoie de clarificări dar nu dă întrebări, nu blocăm fluxul
+      return { needs_more_info: false, clarified_question: originalQuestion, confidence: 0.2 };
+    }
+    return out;
+  } catch (e) {
+    console.warn("Parse clarify failed. Raw content:", content, e);
+    return { needs_more_info: false, clarified_question: originalQuestion, confidence: 0.1 };
   }
-
-  return json.choices[0].message.content.trim();
 }

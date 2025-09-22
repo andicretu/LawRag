@@ -68,7 +68,7 @@ export async function searchChunks(question: string): Promise<EmbeddedChunk[]> {
 
   const vecLiteral = `[${questionEmbedding.join(",")}]`;
 
-  await client.query(`SET ivfflat.probes = 5;`);
+  await client.query(`SET ivfflat.probes = 60;`);
   console.log(`[${new Date().toISOString()}] 🛠️ Set IVFFLAT probe count`);
 
   console.time("⏱️ Vector DB query");

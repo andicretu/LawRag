@@ -16,6 +16,7 @@ export async function answerFromContext(question: string, relevantChunks: Embedd
       role: "system",
       content: `Ești un asistent juridic specializat în legislația română. Răspunde întrebărilor strict pe baza contextului oferit. 
       Explică legăturile dintre documentele oferite în context și întrebarea utilizatorului, precum și conexiunile juridice dintre alte documente relevante și contextul prezentat.
+      Cand oferi trimiteri la documentele din context, include intotdeauna titlul complet si data documentului
       Nu oferi linkuri in răspuns, doar răspunsul la întrebare.`,
     },
     {
